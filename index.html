@@ -18,11 +18,24 @@
             padding: 20px;
         }
 
+        /* En-tête de la page avec logo */
+        .main-header {
+            display: flex;
+            align-items: center;
+            gap: 25px; /* Espace entre le logo et le titre */
+            max-width: 1800px;
+            margin: 0 auto 40px auto;
+        }
+
+        .logo {
+            height: 50px;
+        }
+
         h1 {
-            text-align: center;
+            text-align: left;
             color: #d08770;
             font-weight: 600;
-            margin-bottom: 40px;
+            margin: 0; /* On retire les marges par défaut */
         }
 
         /* Conteneur principal avec layout Flexbox */
@@ -113,14 +126,21 @@
         /* Styles d'impression */
         @media print {
              @page { size: A4 landscape; margin: 1cm; }
-            .controls-container { display: none; }
+            .controls-container, .reset-button { display: none; }
+            .page-container, .main-header {
+                flex-direction: column;
+                align-items: flex-start;
+            }
             .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; }
         }
     </style>
 </head>
 <body>
 
-    <h1>Pilotage de l'Appel d'Offres</h1>
+    <div class="main-header">
+        <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
+        <h1>Pilotage de l'Appel d'Offres</h1>
+    </div>
 
     <div class="page-container">
         
@@ -141,15 +161,15 @@
     <script>
         // --- DONNÉES INITIALES ---
         const initialTasks = [
-            { id: 'task_ao', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01' },
-            { id: 'task_analyse', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08' },
-            { id: 'task_qr', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13' },
-            { id: 'task_shortlist', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15' },
-            { id: 'task_soutenance', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24' },
-            { id: 'task_finalisation', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31' },
-            { id: 'task_loi', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06' },
-            { id: 'task_contrat', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19' },
-            { id: 'task_signature', name: 'Signature', start: '2025-12-24', end: '2025-12-25' }
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01' },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08' },
+            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13' },
+            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15' },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24' },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31' },
+            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06' },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19' },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25' }
         ];
 
         let currentTasks = [];
@@ -170,7 +190,7 @@
                     const options = { year: 'numeric', month: 'long', day: 'numeric' };
                     const startDate = new Date(task.start).toLocaleDateString('fr-FR', options);
                     const endDate = new Date(task.end).toLocaleDateString('fr-FR', options);
-                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div></div>`;
+                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div></div>`;
                 }
             },
             annotations: {
@@ -191,7 +211,7 @@
             return [{
                 name: 'Planning',
                 data: tasks.map(task => ({
-                    x: task.name,
+                    x: `${task.emoji} ${task.name}`,
                     y: [ new Date(task.start).getTime(), new Date(task.end).getTime() ]
                 }))
             }];
@@ -212,7 +232,7 @@
             currentTasks.forEach((task, index) => {
                 tableHTML += `
                     <tr>
-                        <td class="task-name">${task.name}</td>
+                        <td class="task-name">${task.emoji} ${task.name}</td>
                         <td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td>
                         <td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td>
                     </tr>`;

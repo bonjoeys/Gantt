@@ -1,0 +1,276 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pilotage de l'Appel d'Offres</title>
+
+    <!-- Importation de la bibliothèque ApexCharts.js -->
+    <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
+
+    <style>
+        /* Style général */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+            background-color: #f8f9fa;
+            color: #3b4252;
+            margin: 0;
+            padding: 20px;
+        }
+
+        h1 {
+            text-align: center;
+            color: #d08770;
+            font-weight: 600;
+            margin-bottom: 40px;
+        }
+
+        /* Conteneur principal avec layout Flexbox */
+        .page-container {
+            display: flex;
+            flex-wrap: wrap; /* Permet de passer en colonne sur petits écrans */
+            gap: 30px;
+            max-width: 1800px;
+            margin: 0 auto;
+        }
+
+        /* Panneau de contrôle (gauche) */
+        .controls-container {
+            flex: 1;
+            min-width: 450px;
+            background-color: #ffffff;
+            padding: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            border: 1px solid #e5e9f0;
+        }
+        .controls-container h2 {
+            margin-top: 0;
+            font-size: 1.4em;
+            color: #2e3440;
+            border-bottom: 2px solid #eceff4;
+            padding-bottom: 10px;
+        }
+
+        /* Diagramme de Gantt (droite) */
+        .gantt-container {
+            flex: 2;
+            min-width: 600px;
+            background-color: #ffffff;
+            padding: 30px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+            border-radius: 12px;
+            border: 1px solid #e5e9f0;
+        }
+
+        /* Style du tableau */
+        #tasks-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        #tasks-table th, #tasks-table td {
+            padding: 12px 8px;
+            text-align: left;
+            border-bottom: 1px solid #eceff4;
+        }
+        #tasks-table th {
+            font-size: 0.9em;
+            text-transform: uppercase;
+            color: #4c566a;
+        }
+        #tasks-table td.task-name {
+            font-weight: 500;
+        }
+        #tasks-table input[type="date"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #d8dee9;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+        
+        /* Bouton de réinitialisation */
+        .reset-button {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin-top: 20px;
+            background-color: #5e81ac;
+            color: #ffffff;
+            border: none;
+            border-radius: 6px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        .reset-button:hover {
+            background-color: #81a1c1;
+        }
+
+        /* Styles d'impression */
+        @media print {
+             @page { size: A4 landscape; margin: 1cm; }
+            .controls-container { display: none; }
+            .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; }
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Pilotage de l'Appel d'Offres</h1>
+
+    <div class="page-container">
+        
+        <div class="controls-container">
+            <h2>Tableau de Contrôle</h2>
+            <div id="table-wrapper">
+                <!-- Le tableau sera généré par JavaScript ici -->
+            </div>
+            <button class="reset-button" id="reset-btn">Réinitialiser le planning</button>
+        </div>
+
+        <div class="gantt-container">
+            <div id="gantt-chart"></div>
+        </div>
+
+    </div>
+
+    <script>
+        // --- DONNÉES INITIALES ---
+        const initialTasks = [
+            { id: 'task_ao', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01' },
+            { id: 'task_analyse', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08' },
+            { id: 'task_qr', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13' },
+            { id: 'task_shortlist', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15' },
+            { id: 'task_soutenance', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24' },
+            { id: 'task_finalisation', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31' },
+            { id: 'task_loi', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06' },
+            { id: 'task_contrat', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19' },
+            { id: 'task_signature', name: 'Signature', start: '2025-12-24', end: '2025-12-25' }
+        ];
+
+        let currentTasks = [];
+
+        // --- CONFIGURATION DU GRAPHIQUE ---
+        const chartOptions = {
+            series: [],
+            chart: { height: 600, type: 'rangeBar' },
+            plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
+            colors: ['#e67e22'],
+            xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
+            yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
+            grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
+            tooltip: { 
+                theme: 'dark',
+                custom: function({ seriesIndex, dataPointIndex }) {
+                    const task = currentTasks[dataPointIndex];
+                    const options = { year: 'numeric', month: 'long', day: 'numeric' };
+                    const startDate = new Date(task.start).toLocaleDateString('fr-FR', options);
+                    const endDate = new Date(task.end).toLocaleDateString('fr-FR', options);
+                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div></div>`;
+                }
+            },
+            annotations: {
+                xaxis: [{
+                    x: new Date().getTime(),
+                    borderColor: '#e44d26',
+                    strokeDashArray: 2,
+                    label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } }
+                }]
+            }
+        };
+
+        const chart = new ApexCharts(document.querySelector("#gantt-chart"), chartOptions);
+        chart.render();
+
+        // --- FONCTIONS ---
+        function formatDataForChart(tasks) {
+            return [{
+                name: 'Planning',
+                data: tasks.map(task => ({
+                    x: task.name,
+                    y: [ new Date(task.start).getTime(), new Date(task.end).getTime() ]
+                }))
+            }];
+        }
+        
+        function saveTasks() {
+            localStorage.setItem('ganttTasks', JSON.stringify(currentTasks));
+        }
+
+        function renderTable() {
+            const tableWrapper = document.getElementById('table-wrapper');
+            let tableHTML = `<table id="tasks-table">
+                <thead>
+                    <tr><th>Étape</th><th>Début</th><th>Fin</th></tr>
+                </thead>
+                <tbody>`;
+            
+            currentTasks.forEach((task, index) => {
+                tableHTML += `
+                    <tr>
+                        <td class="task-name">${task.name}</td>
+                        <td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td>
+                        <td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td>
+                    </tr>`;
+            });
+
+            tableHTML += `</tbody></table>`;
+            tableWrapper.innerHTML = tableHTML;
+            addTableListeners();
+        }
+
+        function updateChart() {
+            chart.updateSeries(formatDataForChart(currentTasks));
+        }
+
+        function handleInputChange(event) {
+            const index = event.target.dataset.index;
+            const type = event.target.dataset.type;
+            const value = event.target.value;
+
+            currentTasks[index][type] = value;
+
+            const task = currentTasks[index];
+            if (new Date(task.end) < new Date(task.start)) {
+                if(type === 'start') task.end = task.start;
+                if(type === 'end') task.start = task.end;
+                renderTable();
+            }
+            
+            saveTasks();
+            updateChart();
+        }
+
+        function addTableListeners() {
+            document.querySelectorAll('#tasks-table input').forEach(input => {
+                input.addEventListener('change', handleInputChange);
+            });
+        }
+        
+        function resetPlanning() {
+            localStorage.removeItem('ganttTasks');
+            loadTasks();
+            renderTable();
+            updateChart();
+        }
+        
+        function loadTasks() {
+            const savedTasks = localStorage.getItem('ganttTasks');
+            currentTasks = savedTasks ? JSON.parse(savedTasks) : JSON.parse(JSON.stringify(initialTasks));
+        }
+
+        // --- INITIALISATION ---
+        document.addEventListener('DOMContentLoaded', () => {
+            loadTasks();
+            renderTable();
+            updateChart();
+            document.getElementById('reset-btn').addEventListener('click', resetPlanning);
+        });
+    </script>
+</body>
+</html>
+

@@ -93,6 +93,7 @@
         }
         #tasks-table td.task-name {
             font-weight: 500;
+            cursor: help; /* Indique qu'une aide est disponible au survol */
         }
         #tasks-table input[type="date"] {
             width: 100%;
@@ -159,17 +160,17 @@
     </div>
 
     <script>
-        // --- DONNÉES INITIALES ---
+        // --- DONNÉES INITIALES AVEC DESCRIPTIONS ---
         const initialTasks = [
-            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01' },
-            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08' },
-            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13' },
-            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15' },
-            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24' },
-            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31' },
-            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06' },
-            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19' },
-            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25' }
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "Phase de publication de l'appel d'offres et de réception des propositions initiales des fournisseurs. Les soumissionnaires préparent leurs dossiers." },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "Ouverture et évaluation des offres reçues selon les critères définis. Comparaison technique, fonctionnelle et financière des propositions." },
+            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "Session de clarification où les soumissionnaires peuvent poser des questions. L'objectif est de lever les ambiguïtés avant la soumission finale." },
+            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "Communication de la liste restreinte des fournisseurs retenus pour la phase suivante. Les candidats non retenus sont également informés." },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24', description: "Présentation orale et démonstration de la solution par les fournisseurs shortlistés. Permet d'évaluer la compréhension du besoin et la qualité du produit." },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "Phase durant laquelle les fournisseurs ajustent leur offre finale. Intègre les retours des soutenances et des dernières clarifications." },
+            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06', description: "Décision finale du comité de sélection et rédaction de la Lettre d'Intention (LOI). Officialise le choix du fournisseur avant la contractualisation." },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "Négociation des termes finaux du contrat et validation juridique. Finalisation de tous les aspects légaux, techniques et financiers." },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "Signature officielle du contrat par toutes les parties. Marque le début effectif de la collaboration avec le fournisseur choisi." }
         ];
 
         let currentTasks = [];
@@ -185,12 +186,21 @@
             grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
             tooltip: { 
                 theme: 'dark',
+                // MISE A JOUR: Ajout de la description dans l'infobulle du graphique
                 custom: function({ seriesIndex, dataPointIndex }) {
                     const task = currentTasks[dataPointIndex];
+                    if (!task) return '';
                     const options = { year: 'numeric', month: 'long', day: 'numeric' };
                     const startDate = new Date(task.start).toLocaleDateString('fr-FR', options);
                     const endDate = new Date(task.end).toLocaleDateString('fr-FR', options);
-                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div></div>`;
+                    const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 300px;";
+
+                    return `<div class="apexcharts-tooltip-box">
+                        <div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div>
+                        <div><strong>Du:</strong> ${startDate}</div>
+                        <div><strong>Au:</strong> ${endDate}</div>
+                        <div style="${descriptionStyle}">${task.description}</div>
+                    </div>`;
                 }
             },
             annotations: {
@@ -230,9 +240,10 @@
                 <tbody>`;
             
             currentTasks.forEach((task, index) => {
+                // MISE A JOUR: Ajout de l'attribut "title" pour l'infobulle native du navigateur
                 tableHTML += `
                     <tr>
-                        <td class="task-name">${task.emoji} ${task.name}</td>
+                        <td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td>
                         <td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td>
                         <td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td>
                     </tr>`;

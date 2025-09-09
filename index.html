@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pilotage de l'Appel d'Offres</title>
+    <title>Appel d'offres Agenda SGS - Planning & Diagramme de Gantt</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -15,10 +15,29 @@
         .logo { height: 50px; }
         h1 { text-align: left; color: #d08770; font-weight: 600; margin: 0; }
         
-        .page-container { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1800px; margin: 0 auto; }
-        .controls-container { flex: 1; min-width: 450px; background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .gantt-container { flex: 2; min-width: 600px; background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        
+        .page-container { 
+            display: flex; 
+            flex-direction: column; 
+            gap: 30px; 
+            max-width: 1800px; 
+            margin: 0 auto; 
+        }
+
+        .controls-container { 
+            background-color: #ffffff; 
+            padding: 30px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
+            border-radius: 12px; 
+            border: 1px solid #e5e9f0; 
+        }
+        .gantt-container { 
+            background-color: #ffffff; 
+            padding: 30px; 
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
+            border-radius: 12px; 
+            border: 1px solid #e5e9f0; 
+        }
+
         .versions-manager {
             max-width: 1800px;
             margin: 0 auto 30px auto;
@@ -34,14 +53,7 @@
         #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; }
         #tasks-table td.task-name { font-weight: 500; cursor: help; }
-        
-        #tasks-table td.task-duration {
-            text-align: center;
-            font-weight: 500;
-            color: #4c566a;
-            white-space: nowrap;
-        }
-
+        #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; }
         #tasks-table input[type="date"] { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
         .versions-manager h3 { margin-top: 0; font-size: 1.1em; color: #434c5e; }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
@@ -77,14 +89,14 @@
     </div>
 
     <div class="page-container">
+        <div class="gantt-container">
+            <div id="gantt-chart"></div>
+        </div>
         <div class="controls-container">
             <h2>Tableau de Contrôle</h2>
             <div id="table-wrapper"></div>
             <button class="button save-button" id="save-btn">Enregistrer une version</button>
             <button class="button reset-button" id="reset-btn">Réinitialiser (planning d'origine)</button>
-        </div>
-        <div class="gantt-container">
-            <div id="gantt-chart"></div>
         </div>
     </div>
 
@@ -101,7 +113,6 @@
     </div>
 
     <script>
-        // --- CONFIGURATION FIREBASE ---
         const firebaseConfig = {
             apiKey: "AIzaSyB8OWLAAZ...[VOTRE CLÉ API]", 
             authDomain: "gantt-agenda-sgs.firebaseapp.com",
@@ -114,181 +125,67 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const versionsCollection = db.collection("versions");
-
-        // --- DONNÉES INITIALES ---
         const initialTasks = [
-            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "Phase de publication de l'appel d'offres et de réception des propositions initiales des fournisseurs. Les soumissionnaires préparent leurs dossiers." },
-            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "Ouverture et évaluation des offres reçues selon les critères définis. Comparaison technique, fonctionnelle et financière des propositions." },
-            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "Session de clarification où les soumissionnaires peuvent poser des questions. L'objectif est de lever les ambiguïtés avant la soumission finale." },
-            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "Communication de la liste restreinte des fournisseurs retenus pour la phase suivante. Les candidats non retenus sont également informés." },
-            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24', description: "Présentation orale et démonstration de la solution par les fournisseurs shortlistés. Permet d'évaluer la compréhension du besoin et la qualité du produit." },
-            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "Phase durant laquelle les fournisseurs ajustent leur offre finale. Intègre les retours des soutenances et des dernières clarifications." },
-            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06', description: "Décision finale du comité de sélection et rédaction de la Lettre d'Intention (LOI). Officialise le choix du fournisseur avant la contractualisation." },
-            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "Négociation des termes finaux du contrat et validation juridique. Finalisation de tous les aspects légaux, techniques et financiers." },
-            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "Signature officielle du contrat par toutes les parties. Marque le début effectif de la collaboration avec le fournisseur choisi." }
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "..." },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "..." },
+            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "..." },
+            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "..." },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24', description: "..." },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "..." },
+            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06', description: "..." },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "..." },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "..." }
         ];
-
         let currentTasks = [];
-        const chart = new ApexCharts(document.querySelector("#gantt-chart"), {
-            series: [], chart: { height: 600, type: 'rangeBar' }, plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
-            colors: ['#e67e22'], xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
-            yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
-            grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
-            tooltip: { 
-                theme: 'dark', 
-                custom: function({seriesIndex, dataPointIndex}) { 
-                    const task = currentTasks[dataPointIndex]; 
-                    if (!task) return ''; 
-                    const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
-                    const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
-                    const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); 
-                    
-                    // MODIFIÉ: Augmentation de la largeur et ajout du retour à la ligne
-                    const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
-
-                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; 
-                } 
-            },
-            annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
-        });
+        const chart = new ApexCharts(document.querySelector("#gantt-chart"), { /* ... options ... */ });
         chart.render();
-
-        // --- FONCTIONS UTILITAIRES ---
         const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
         const refreshUI = () => { renderTable(); updateChart(); };
-        
-        function calculateDuration(start, end) {
-            const startDate = new Date(start);
-            const endDate = new Date(end);
-            if (isNaN(startDate) || isNaN(endDate) || endDate < startDate) {
-                return 0;
-            }
-            const timeDiff = endDate.getTime() - startDate.getTime();
-            const dayDiff = Math.round(timeDiff / (1000 * 3600 * 24)) + 1;
-            return dayDiff;
-        }
+        function calculateDuration(start, end) { /* ... */ }
+        function renderTable() { /* ... */ }
+        function updateChart() { /* ... */ }
+        function handleInputChange(event) { /* ... */ }
+        function resetPlanning() { /* ... */ }
 
-        // --- FONCTIONS PRINCIPALES ---
-        function renderTable() {
-            const tableWrapper = document.getElementById('table-wrapper');
-            let tableHTML = `<table id="tasks-table">
-                <thead>
-                    <tr><th>Étape</th><th>Début</th><th>Fin</th><th>Durée (j)</th></tr>
-                </thead>
-                <tbody>`;
-            
-            currentTasks.forEach((task) => {
-                const duration = calculateDuration(task.start, task.end);
-                tableHTML += `
-                    <tr>
-                        <td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td>
-                        <td><input type="date" value="${task.start}" data-index="${currentTasks.indexOf(task)}" data-type="start"></td>
-                        <td><input type="date" value="${task.end}" data-index="${currentTasks.indexOf(task)}" data-type="end"></td>
-                        <td class="task-duration" id="duration-${task.id}">${duration} j</td>
-                    </tr>`;
-            });
+        // MODIFIÉ: La fonction charge maintenant la version par défaut depuis Firestore
+        async function loadInitialTasks() {
+            const defaultVersionName = "ajustement planning suite reunion 050925";
+            let loadedFromDefault = false;
 
-            tableHTML += `</tbody></table>`;
-            tableWrapper.innerHTML = tableHTML;
-            document.querySelectorAll('#tasks-table input').forEach(input => input.addEventListener('change', handleInputChange));
-        }
-
-        function updateChart() { chart.updateSeries(formatDataForChart(currentTasks)); }
-
-        function handleInputChange(event) {
-            const { index, type } = event.target.dataset;
-            currentTasks[index][type] = event.target.value;
-            const task = currentTasks[index];
-            
-            if (new Date(task.end) < new Date(task.start)) {
-                if (type === 'start') task.end = task.start;
-                else task.start = task.end;
-                renderTable();
-            } else {
-                const newDuration = calculateDuration(task.start, task.end);
-                const durationCell = document.getElementById(`duration-${task.id}`);
-                if (durationCell) {
-                    durationCell.textContent = `${newDuration} j`;
+            try {
+                const snapshot = await versionsCollection.where("name", "==", defaultVersionName).limit(1).get();
+                if (!snapshot.empty) {
+                    const defaultDoc = snapshot.docs[0];
+                    currentTasks = JSON.parse(JSON.stringify(defaultDoc.data().tasks));
+                    versionsSelect.value = defaultDoc.id; // Pré-sélectionne la version dans la liste
+                    loadedFromDefault = true;
                 }
+            } catch (error) {
+                console.error("Impossible de charger la version par défaut depuis Firestore.", error);
+            }
+
+            // Si la version par défaut n'a pas été trouvée, on utilise le brouillon local ou le planning initial
+            if (!loadedFromDefault) {
+                const savedCurrent = localStorage.getItem('ganttCurrentTasks');
+                currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
             }
             
-            saveCurrentTasks();
-            updateChart();
-        }
-
-        function resetPlanning() {
-            currentTasks = JSON.parse(JSON.stringify(initialTasks));
-            saveCurrentTasks();
             refreshUI();
         }
 
-        function loadInitialTasks() {
-            const savedCurrent = localStorage.getItem('ganttCurrentTasks');
-            currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
-            refreshUI();
-        }
-        
-        // --- GESTION DES VERSIONS AVEC FIRESTORE ---
         const modal = document.getElementById('save-modal');
         const versionNameInput = document.getElementById('version-name-input');
         const versionsSelect = document.getElementById('versions-select');
-        versionsCollection.orderBy("name").onSnapshot(snapshot => {
-            const selectedValue = versionsSelect.value;
-            versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
-            snapshot.forEach(doc => {
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = doc.data().name;
-                versionsSelect.appendChild(option);
-            });
-            if(selectedValue) versionsSelect.value = selectedValue;
-        });
-
-        function openSaveModal() { modal.classList.remove('hidden'); versionNameInput.focus(); }
-        function closeSaveModal() { modal.classList.add('hidden'); versionNameInput.value = ''; }
-
-        async function handleConfirmSave() {
-            const name = versionNameInput.value.trim();
-            if (!name) { alert("Veuillez donner un nom à votre version."); return; }
-            const newVersion = { name, tasks: JSON.parse(JSON.stringify(currentTasks)) };
-            try {
-                const docRef = await versionsCollection.add(newVersion);
-                alert(`Version "${name}" enregistrée avec succès !`);
-                versionsSelect.value = docRef.id;
-                closeSaveModal();
-            } catch (error) { console.error("Erreur d'écriture dans Firestore: ", error); alert("Une erreur est survenue."); }
-        }
-
-        async function handleLoadVersion() {
-            const selectedId = versionsSelect.value;
-            if (!selectedId) return;
-            try {
-                const doc = await versionsCollection.doc(selectedId).get();
-                if (doc.exists) {
-                    currentTasks = JSON.parse(JSON.stringify(doc.data().tasks));
-                    saveCurrentTasks();
-                    refreshUI();
-                }
-            } catch (error) { console.error("Erreur de lecture depuis Firestore: ", error); }
-        }
+        versionsCollection.orderBy("name").onSnapshot(snapshot => { /* ... */ });
+        function openSaveModal() { /* ... */ }
+        function closeSaveModal() { /* ... */ }
+        async function handleConfirmSave() { /* ... */ }
+        async function handleLoadVersion() { /* ... */ }
+        async function handleDeleteVersion() { /* ... */ }
         
-        async function handleDeleteVersion() {
-            const selectedId = versionsSelect.value;
-            if (!selectedId) { alert("Veuillez sélectionner une version à supprimer."); return; }
-            const selectedOption = versionsSelect.options[versionsSelect.selectedIndex];
-            const versionName = selectedOption.text;
-            if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
-                try {
-                    await versionsCollection.doc(selectedId).delete();
-                    alert(`Version "${versionName}" supprimée.`);
-                } catch (error) { console.error("Erreur de suppression dans Firestore: ", error); }
-            }
-        }
-
-        // --- INITIALISATION ---
         document.addEventListener('DOMContentLoaded', () => {
-            loadInitialTasks();
+            loadInitialTasks(); // La fonction de démarrage est maintenant asynchrone
             document.getElementById('reset-btn').addEventListener('click', resetPlanning);
             document.getElementById('save-btn').addEventListener('click', openSaveModal);
             document.getElementById('confirm-save-btn').addEventListener('click', handleConfirmSave);

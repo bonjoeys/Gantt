@@ -67,7 +67,6 @@
         let currentTasks = [];
         let chart;
 
-        // ... autres fonctions ...
         const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
         const refreshUI = () => { renderTable(); updateChart(); };
@@ -76,48 +75,70 @@
         function updateChart() { if (chart) { chart.updateSeries(formatDataForChart(currentTasks)); } }
         function handleInputChange(event) { /* ... */ }
         function resetPlanning() { /* ... */ }
-        async function loadInitialTasks() { /* ... */ }
+        async function loadInitialTasks(versionsSelect) {
+             const defaultVersionName = "ajustement planning suite reunion 050925";
+            let loadedFromDefault = false;
+            try {
+                const snapshot = await versionsCollection.where("name", "==", defaultVersionName).limit(1).get();
+                if (!snapshot.empty) {
+                    const defaultDoc = snapshot.docs[0];
+                    currentTasks = JSON.parse(JSON.stringify(defaultDoc.data().tasks));
+                    if (versionsSelect) { versionsSelect.value = defaultDoc.id; }
+                    loadedFromDefault = true;
+                }
+            } catch (error) { console.error("Impossible de charger la version par défaut.", error); }
+            if (!loadedFromDefault) {
+                const savedCurrent = localStorage.getItem('ganttCurrentTasks');
+                currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
+            }
+            refreshUI();
+        }
         
-        const modal = document.getElementById('save-modal');
-        const versionNameInput = document.getElementById('version-name-input');
-        const versionsSelect = document.getElementById('versions-select');
+        async function handleLoadVersion(versionsSelect) {
+            const selectedId = versionsSelect.value;
+            if (!selectedId) return;
+            try {
+                const doc = await versionsCollection.doc(selectedId).get();
+                if (doc.exists) {
+                    currentTasks = JSON.parse(JSON.stringify(doc.data().tasks));
+                    saveCurrentTasks();
+                    refreshUI();
+                }
+            } catch (error) { console.error("Erreur de lecture", error); }
+        }
 
-        // NOUVEAU: Ajout de messages de débogage et d'une gestion d'erreur
-        console.log("Script initialisé. Tentative de connexion à la collection 'versions'...");
-
-        versionsCollection.orderBy("name").onSnapshot(snapshot => {
-            console.log("Connexion réussie ! L'écouteur onSnapshot a été déclenché. Documents trouvés :", snapshot.size);
-            
-            const selectedValue = versionsSelect.value;
-            versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
-            snapshot.forEach(doc => {
-                const option = document.createElement('option');
-                option.value = doc.id;
-                option.textContent = doc.data().name;
-                versionsSelect.appendChild(option);
-            });
-            if(selectedValue) versionsSelect.value = selectedValue;
-
-        }, error => {
-            console.error("ERREUR DE CONNEXION FIRESTORE : L'écouteur onSnapshot a échoué.", error);
-            alert("Impossible de se connecter à la base de données. Vérifiez la console (F12) pour les erreurs.");
-        });
-
-        function openSaveModal() { /* ... */ }
-        function closeSaveModal() { /* ... */ }
-        async function handleConfirmSave() { /* ... */ }
-        async function handleLoadVersion() { /* ... */ }
-        async function handleDeleteVersion() { /* ... */ }
-        
         document.addEventListener('DOMContentLoaded', () => {
-            console.log("DOM entièrement chargé. Initialisation du graphique...");
+            // MODIFIÉ: On déclare toutes les variables liées au DOM ici
+            const modal = document.getElementById('save-modal');
+            const versionNameInput = document.getElementById('version-name-input');
+            const versionsSelect = document.getElementById('versions-select');
+
             chart = new ApexCharts(document.querySelector("#gantt-chart"), { /* ... options ... */ });
             chart.render();
 
-            console.log("Graphique initialisé. Chargement des tâches initiales...");
-            loadInitialTasks();
+            versionsCollection.orderBy("name").onSnapshot(snapshot => {
+                const selectedValue = versionsSelect.value;
+                versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
+                snapshot.forEach(doc => {
+                    const option = document.createElement('option');
+                    option.value = doc.id;
+                    option.textContent = doc.data().name;
+                    versionsSelect.appendChild(option);
+                });
+                if(selectedValue) { versionsSelect.value = selectedValue; }
+            }, error => {
+                console.error("ERREUR FIRESTORE:", error);
+                alert("Impossible de se connecter à la base de données.");
+            });
             
-            // ... autres écouteurs d'événements ...
+            loadInitialTasks(versionsSelect);
+            
+            document.getElementById('reset-btn').addEventListener('click', resetPlanning);
+            document.getElementById('save-btn').addEventListener('click', () => modal.classList.remove('hidden'));
+            document.getElementById('confirm-save-btn').addEventListener('click', async () => { /* ... */ });
+            document.getElementById('cancel-save-btn').addEventListener('click', () => modal.classList.add('hidden'));
+            document.getElementById('versions-select').addEventListener('change', () => handleLoadVersion(versionsSelect));
+            document.getElementById('delete-btn').addEventListener('click', async () => { /* ... */ });
         });
     </script>
 </body>

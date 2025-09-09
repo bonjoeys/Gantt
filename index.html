@@ -10,7 +10,6 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <style>
-        /* Le CSS reste identique */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; background-color: #f8f9fa; color: #3b4252; margin: 0; padding: 20px; }
         .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 40px auto; }
         .logo { height: 50px; }
@@ -21,39 +20,28 @@
         .controls-container h2, .versions-manager h3 { margin-top: 0; font-size: 1.4em; color: #2e3440; }
         .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
         #tasks-table { width: 100%; border-collapse: collapse; }
-        #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; }
+        #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; vertical-align: middle; }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; }
-        
-        /* MODIFIÉ: Centrage des en-têtes de colonnes */
-        #tasks-table th.center-header {
-            text-align: center;
-        }
-
+        #tasks-table th.center-header { text-align: center; }
         #tasks-table td.task-name { font-weight: 500; cursor: help; }
         #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; }
-        #tasks-table input[type="date"] { 
-            width: 100%; 
-            padding: 8px; 
-            border: 1px solid #d8dee9; 
-            border-radius: 6px; 
-            font-family: inherit; 
-            font-size: 14px; 
-            box-sizing: border-box; 
-            text-align: center;
-        }
+        #tasks-table input[type="date"], #tasks-table select { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; text-align: center; }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
-        .versions-actions { display: flex; gap: 10px; margin-top: 10px; }
         .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
-        .reset-button { background-color: #bf616a; } .reset-button:hover { background-color: #d08770; }
         .save-button { background-color: #a3be8c; } .save-button:hover { background-color: #b5d5a2; }
         .delete-button { background-color: #d08770; } .delete-button:hover { background-color: #e59a85; }
+        .cancel-button { background-color: #bf616a; } .cancel-button:hover { background-color: #d08770; }
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.6); display: flex; justify-content: center; align-items: center; z-index: 1000; }
         .modal-content { background: #fff; padding: 30px; border-radius: 12px; width: 90%; max-width: 450px; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
         .modal-content h3 { margin-top: 0; }
-        .modal-content input { width: 100%; padding: 10px; font-size: 1em; margin-top: 10px; border: 1px solid #d8dee9; border-radius: 6px; box-sizing: border-box; }
+        .modal-content label { display: block; margin-top: 15px; font-weight: 500; color: #4c566a; }
+        .modal-content input, .modal-content select { width: 100%; padding: 10px; font-size: 1em; margin-top: 5px; border: 1px solid #d8dee9; border-radius: 6px; box-sizing: border-box; }
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-actions .button { margin-top: 0; }
         .hidden { display: none; }
+        .default-version-wrapper { display: flex; align-items: center; margin-top: 15px; }
+        .default-version-wrapper input { width: auto; margin-right: 10px; }
+        .default-version-wrapper label { margin: 0; }
         @media print { @page { size: A4 landscape; margin: 1cm; } .controls-container, .versions-manager, .main-header { display: none; } .page-container { flex-direction: column; align-items: flex-start; max-width: 100%; gap: 0; } .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; } }
     </style>
 </head>
@@ -67,9 +55,6 @@
         <select id="versions-select">
             <option value="">-- Chargement des versions... --</option>
         </select>
-        <div class="versions-actions">
-            <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
-        </div>
     </div>
     <div class="page-container">
         <div class="gantt-container">
@@ -78,17 +63,26 @@
         <div class="controls-container">
             <h2>Planning</h2>
             <div id="table-wrapper"></div>
-            <button class="button save-button" id="save-btn">Enregistrer une version</button>
+            <button class="button save-button" id="manage-versions-btn">Gérer les versions...</button>
         </div>
     </div>
     <div id="save-modal" class="modal-overlay hidden">
         <div class="modal-content">
-            <h3>Enregistrer la version du planning</h3>
-            <p>Donnez un nom à cette version (ex: "Scénario optimiste", "Version V2 client", ...)</p>
-            <input type="text" id="version-name-input" placeholder="Nom de la version...">
+            <h3>Gérer les versions</h3>
+            <label for="modal-versions-select">Action</label>
+            <select id="modal-versions-select">
+                <option value="new">Créer une nouvelle version</option>
+            </select>
+            <label for="version-name-input">Nom de la version</label>
+            <input type="text" id="version-name-input" placeholder="Nom de la nouvelle version...">
+            <div id="default-version-wrapper" class="default-version-wrapper hidden">
+                <input type="checkbox" id="set-as-default-checkbox">
+                <label for="set-as-default-checkbox">Définir comme version par défaut</label>
+            </div>
             <div class="modal-actions">
-                <button id="confirm-save-btn" class="button save-button">Confirmer</button>
-                <button id="cancel-save-btn" class="button reset-button">Annuler</button>
+                <button id="confirm-save-btn" class="button save-button">Mettre à jour</button>
+                <button id="confirm-delete-btn" class="button delete-button hidden">Supprimer</button>
+                <button id="cancel-save-btn" class="button cancel-button">Annuler</button>
             </div>
         </div>
     </div>
@@ -96,7 +90,7 @@
     <script>
         // --- CONFIGURATION ET DONNÉES GLOBALES ---
         const firebaseConfig = {
-            apiKey: "AIzaSyB8OWLAAZr9kVdZKZgYTndAd8fPUCzLxMc", 
+            apiKey: "AIzaSyB8OWLAAZr9kVdZKZgYTndAd8fPUCzLxMc",
             authDomain: "gantt-agenda-sgs.firebaseapp.com",
             projectId: "gantt-agenda-sgs",
             storageBucket: "gantt-agenda-sgs.appspot.com",
@@ -105,19 +99,20 @@
             measurementId: "G-QVK435BBE5"
         };
         const initialTasks = [
-            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "Phase de publication de l'appel d'offres et de réception des propositions initiales des fournisseurs. Les soumissionnaires préparent leurs dossiers." },
-            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "Ouverture et évaluation des offres reçues selon les critères définis. Comparaison technique, fonctionnelle et financière des propositions." },
-            { id: 'task_qr', emoji: '💬', name: 'Questions & Réponses aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "Session de clarification où les soumissionnaires peuvent poser des questions. L'objectif est de lever les ambiguïtés avant la soumission finale." },
-            { id: 'task_shortlist', emoji: '✅', name: 'Communication de la shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "Communication de la liste restreinte des fournisseurs retenus pour la phase suivante. Les candidats non retenus sont également informés." },
-            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenances & Démonstrations", start: '2025-10-20', end: '2025-10-24', description: "Présentation orale et démonstration de la solution par les fournisseurs shortlistés. Permet d'évaluer la compréhension du besoin et la qualité du produit." },
-            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "Phase durant laquelle les fournisseurs ajustent leur offre finale. Intègre les retours des soutenances et des dernières clarifications." },
-            { id: 'task_loi', emoji: '⚖️', name: "Délibération & Lettre d'Intention (LOI)", start: '2025-11-05', end: '2025-11-06', description: "Décision finale du comité de sélection et rédaction de la Lettre d'Intention (LOI). Officialise le choix du fournisseur avant la contractualisation." },
-            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "Négociation des termes finaux du contrat et validation juridique. Finalisation de tous les aspects légaux, techniques et financiers." },
-            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "Signature officielle du contrat par toutes les parties. Marque le début effectif de la collaboration avec le fournisseur choisi." }
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "...", status: "À faire" },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "...", status: "À faire" },
+            { id: 'task_qr', emoji: '💬', name: 'Questions & Réponses aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "...", status: "À faire" },
+            { id: 'task_shortlist', emoji: '✅', name: 'Communication de la shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "...", status: "À faire" },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenances & Démonstrations", start: '2025-10-20', end: '2025-10-24', description: "...", status: "À faire" },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "...", status: "À faire" },
+            { id: 'task_loi', emoji: '⚖️', name: "Délibération & Lettre d'Intention (LOI)", start: '2025-11-05', end: '2025-11-06', description: "...", status: "À faire" },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "...", status: "À faire" },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "...", status: "À faire" }
         ];
         
         // --- ÉTAT DE L'APPLICATION ---
         let currentTasks = [];
+        let allVersions = [];
         let chart;
         let db;
 
@@ -129,17 +124,9 @@
             const timeDiff = endDate.getTime() - startDate.getTime();
             return Math.round(timeDiff / (1000 * 3600 * 24)) + 1;
         };
+        const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
 
-        const formatDataForChart = (tasks) => [{ 
-            name: 'Planning', 
-            data: tasks.map(t => ({ 
-                x: `${t.emoji} ${t.name}`, 
-                y: [new Date(t.start).getTime(), new Date(t.end).getTime()] 
-            })) 
-        }];
-
-
-        // --- LOGIQUE PRINCIPALE AU CHARGEMENT DE LA PAGE ---
+        // --- LOGIQUE PRINCIPALE ---
         document.addEventListener('DOMContentLoaded', () => {
             
             // --- INITIALISATION DES SERVICES ---
@@ -157,21 +144,28 @@
                 modal: document.getElementById('save-modal'),
                 versionNameInput: document.getElementById('version-name-input'),
                 versionsSelect: document.getElementById('versions-select'),
-                tableWrapper: document.getElementById('table-wrapper')
+                modalVersionsSelect: document.getElementById('modal-versions-select'),
+                tableWrapper: document.getElementById('table-wrapper'),
+                ganttChart: document.querySelector("#gantt-chart"),
+                confirmDeleteBtn: document.getElementById('confirm-delete-btn'),
+                defaultVersionWrapper: document.getElementById('default-version-wrapper'),
+                setAsDefaultCheckbox: document.getElementById('set-as-default-checkbox')
             };
             
             // --- INITIALISATION DU GRAPHIQUE ---
-            chart = new ApexCharts(document.querySelector("#gantt-chart"), {
+            const chartOptions = {
                 series: [], 
-                chart: { 
-                    height: 600, 
-                    type: 'rangeBar',
-                    zoom: {
-                        enabled: false
-                    }
-                }, 
-                plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
-                colors: ['#e67e22'], 
+                chart: { height: 600, type: 'rangeBar', zoom: { enabled: false } },
+                plotOptions: { bar: { horizontal: true, borderRadius: 5 } },
+                fill: { type: 'solid' },
+                colors: [function({ dataPointIndex }) {
+                    const task = currentTasks[dataPointIndex];
+                    if (!task) return '#E67E22';
+                    const isOverdue = new Date(task.end) < new Date() && task.status !== 'Terminé';
+                    if (isOverdue) return '#BF616A';
+                    if (task.status === 'Terminé') return '#A3BE8C';
+                    return '#E67E22';
+                }],
                 xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
                 yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
                 grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
@@ -188,123 +182,155 @@
                     } 
                 },
                 annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
-            });
+            };
+            chart = new ApexCharts(elements.ganttChart, chartOptions);
             chart.render();
 
             // --- FONCTIONS DE MISE À JOUR DE L'INTERFACE ---
             const renderTable = () => {
-                // MODIFIÉ: Ajout de la classe "center-header" aux en-têtes
-                let tableHTML = `<table id="tasks-table"><thead><tr><th>Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th></tr></thead><tbody>`;
+                let tableHTML = `<table id="tasks-table"><thead><tr><th>Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th><th class="center-header">Statut</th></tr></thead><tbody>`;
                 currentTasks.forEach((task, index) => {
                     const duration = calculateDuration(task.start, task.end);
-                    tableHTML += `<tr><td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td><td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td><td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td><td class="task-duration" id="duration-${task.id}">${duration} j</td></tr>`;
+                    const status = task.status || 'À faire';
+                    tableHTML += `<tr>
+                        <td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td>
+                        <td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td>
+                        <td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td>
+                        <td class="task-duration" id="duration-${task.id}">${duration} j</td>
+                        <td>
+                            <select data-index="${index}" data-type="status">
+                                <option value="À faire" ${status === 'À faire' ? 'selected' : ''}>À faire</option>
+                                <option value="En cours" ${status === 'En cours' ? 'selected' : ''}>En cours</option>
+                                <option value="Terminé" ${status === 'Terminé' ? 'selected' : ''}>Terminé</option>
+                            </select>
+                        </td>
+                    </tr>`;
                 });
                 tableHTML += `</tbody></table>`;
                 elements.tableWrapper.innerHTML = tableHTML;
                 elements.tableWrapper.querySelectorAll('input[type="date"]').forEach(input => input.addEventListener('change', handleInputChange));
+                elements.tableWrapper.querySelectorAll('select').forEach(select => select.addEventListener('change', handleStatusChange));
             };
-
-            const updateChart = () => {
-                if (chart) chart.updateSeries(formatDataForChart(currentTasks));
-            };
-
-            const refreshUI = () => { 
-                renderTable(); 
-                updateChart(); 
-            };
-            
+            const updateChart = () => { if (chart) chart.updateSeries(formatDataForChart(currentTasks)); };
+            const refreshUI = () => { renderTable(); updateChart(); };
             const updateVersionsDropdown = (versions) => {
                 const selectedValue = elements.versionsSelect.value;
                 elements.versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
                 versions.forEach(version => {
                     const option = document.createElement('option');
                     option.value = version.id;
-                    option.textContent = version.name;
+                    option.textContent = version.isDefault ? `${version.name} (par défaut)` : version.name;
                     elements.versionsSelect.appendChild(option);
                 });
                 if(selectedValue) elements.versionsSelect.value = selectedValue;
             };
+            const populateModalDropdown = () => {
+                elements.modalVersionsSelect.innerHTML = '<option value="new">Créer une nouvelle version</option>';
+                allVersions.forEach(version => {
+                    const option = document.createElement('option');
+                    option.value = version.id;
+                    option.textContent = version.name;
+                    elements.modalVersionsSelect.appendChild(option);
+                });
+            };
 
             // --- FONCTIONS DE GESTION DES DONNÉES ---
             const setCurrentTasks = (tasks) => {
-                currentTasks = JSON.parse(JSON.stringify(tasks));
+                const tasksWithStatus = tasks.map(task => ({ ...task, status: task.status || 'À faire' }));
+                currentTasks = JSON.parse(JSON.stringify(tasksWithStatus));
                 localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
                 refreshUI();
             };
-
             const handleInputChange = (event) => {
                 const { index, type } = event.target.dataset;
-                const task = currentTasks[index];
-                
-                task[type] = event.target.value;
-                
-                if (new Date(task.end) < new Date(task.start)) {
-                    if (type === 'start') task.end = task.start;
-                    else task.start = task.end;
-                    renderTable();
-                } else {
-                    const durationCell = document.getElementById(`duration-${task.id}`);
-                    if (durationCell) durationCell.textContent = `${calculateDuration(task.start, task.end)} j`;
-                }
-                
+                currentTasks[index][type] = event.target.value;
                 localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-                updateChart();
+                refreshUI(); 
+            };
+            const handleStatusChange = (event) => {
+                const { index } = event.target.dataset;
+                currentTasks[index].status = event.target.value;
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                updateChart(); 
             };
 
             // --- INTERACTIONS AVEC FIREBASE ---
             const loadVersionFromFirestore = async (versionId) => {
-                if (!versionId) return; 
+                if (!versionId) return;
                 try {
                     const doc = await db.collection("versions").doc(versionId).get();
-                    if (doc.exists) {
-                        setCurrentTasks(doc.data().tasks);
-                    }
+                    if (doc.exists) setCurrentTasks(doc.data().tasks);
                 } catch (error) { console.error("Erreur de lecture", error); }
             };
 
-            const saveVersionToFirestore = async () => {
-                const name = elements.versionNameInput.value.trim();
-                if (!name) return alert("Veuillez donner un nom à votre version.");
+            const handleSaveOrUpdateVersion = async () => {
+                const selectedActionId = elements.modalVersionsSelect.value;
+                const newName = elements.versionNameInput.value.trim();
+                const isDefault = elements.setAsDefaultCheckbox.checked;
+                if (!newName) return alert("Le nom de la version ne peut pas être vide.");
                 
-                const newVersion = { name, tasks: currentTasks };
+                const plainTasks = JSON.parse(JSON.stringify(currentTasks));
+                const versionData = { name: newName, tasks: plainTasks, isDefault };
+                
+                const existingNameQuery = await db.collection("versions").where("name", "==", newName).get();
+                const nameExistsOnOtherDoc = !existingNameQuery.empty && existingNameQuery.docs[0].id !== selectedActionId;
+                if (nameExistsOnOtherDoc) {
+                    return alert(`Une autre version nommée "${newName}" existe déjà.`);
+                }
+                
                 try {
-                    const docRef = await db.collection("versions").add(newVersion);
-                    alert(`Version "${name}" enregistrée avec succès !`);
-                    elements.versionsSelect.value = docRef.id;
+                    const batch = db.batch();
+                    if (isDefault) {
+                        const currentDefaultQuery = await db.collection("versions").where("isDefault", "==", true).get();
+                        currentDefaultQuery.forEach(doc => {
+                            if (doc.id !== selectedActionId) {
+                                batch.update(doc.ref, { isDefault: false });
+                            }
+                        });
+                    }
+
+                    if (selectedActionId === 'new') {
+                        const newDocRef = db.collection("versions").doc();
+                        batch.set(newDocRef, versionData);
+                    } else {
+                        const docRef = db.collection("versions").doc(selectedActionId);
+                        batch.update(docRef, versionData);
+                    }
+                    
+                    await batch.commit();
+                    alert(`Version "${newName}" sauvegardée avec succès !`);
                     elements.modal.classList.add('hidden');
-                } catch (error) { console.error("Erreur d'écriture", error); alert("Une erreur est survenue."); }
+                } catch (error) { console.error("Erreur de sauvegarde:", error); alert("Une erreur est survenue lors de la sauvegarde. Veuillez vérifier la console pour plus de détails."); }
             };
 
             const deleteVersionFromFirestore = async () => {
-                const selectedId = elements.versionsSelect.value;
-                if (!selectedId) return alert("Veuillez sélectionner une version à supprimer.");
-                
-                const selectedOption = elements.versionsSelect.options[elements.versionsSelect.selectedIndex];
+                const selectedId = elements.modalVersionsSelect.value;
+                if (!selectedId || selectedId === 'new') return;
+                const selectedOption = elements.modalVersionsSelect.options[elements.modalVersionsSelect.selectedIndex];
                 const versionName = selectedOption.text;
-
                 if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
                     try {
                         await db.collection("versions").doc(selectedId).delete();
                         alert(`Version "${versionName}" supprimée.`);
                         setCurrentTasks(initialTasks);
+                        elements.modal.classList.add('hidden');
                     } catch (error) { console.error("Erreur de suppression", error); }
                 }
             };
             
             const listenForVersionsChanges = () => {
                 db.collection("versions").orderBy("name").onSnapshot(snapshot => {
-                    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-                    updateVersionsDropdown(versions);
+                    allVersions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateVersionsDropdown(allVersions);
                 }, error => {
                     console.error("ERREUR FIRESTORE:", error);
-                    alert("Impossible de se connecter à la base de données pour les mises à jour en temps réel.");
+                    alert("Impossible d'écouter les mises à jour de la base de données.");
                 });
             };
 
             const loadInitialTasks = async () => {
-                const defaultVersionName = "Ajustement planning suite réunion 050925";
                 try {
-                    const snapshot = await db.collection("versions").where("name", "==", defaultVersionName).limit(1).get();
+                    const snapshot = await db.collection("versions").where("isDefault", "==", true).limit(1).get();
                     if (!snapshot.empty) {
                         const defaultDoc = snapshot.docs[0];
                         setCurrentTasks(defaultDoc.data().tasks);
@@ -318,11 +344,38 @@
             };
 
             // --- ÉVÉNEMENTS (EVENT LISTENERS) ---
-            document.getElementById('save-btn').addEventListener('click', () => elements.modal.classList.remove('hidden'));
-            document.getElementById('confirm-save-btn').addEventListener('click', saveVersionToFirestore);
+            document.getElementById('manage-versions-btn').addEventListener('click', () => {
+                populateModalDropdown();
+                elements.modalVersionsSelect.value = 'new';
+                elements.versionNameInput.value = '';
+                elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
+                elements.confirmDeleteBtn.classList.add('hidden');
+                elements.defaultVersionWrapper.classList.add('hidden');
+                elements.modal.classList.remove('hidden');
+                elements.versionNameInput.focus();
+            });
+            elements.modalVersionsSelect.addEventListener('change', (event) => {
+                const selectedId = event.target.value;
+                if (selectedId === 'new') {
+                    elements.versionNameInput.value = '';
+                    elements.versionNameInput.placeholder = 'Nom de la nouvelle version...';
+                    elements.confirmDeleteBtn.classList.add('hidden');
+                    elements.defaultVersionWrapper.classList.add('hidden');
+                } else {
+                    const selectedVersion = allVersions.find(v => v.id === selectedId);
+                    if (selectedVersion) {
+                        elements.versionNameInput.value = selectedVersion.name;
+                        elements.setAsDefaultCheckbox.checked = selectedVersion.isDefault || false;
+                    }
+                    elements.confirmDeleteBtn.classList.remove('hidden');
+                    elements.defaultVersionWrapper.classList.remove('hidden');
+                }
+            });
+
+            document.getElementById('confirm-save-btn').addEventListener('click', handleSaveOrUpdateVersion);
             document.getElementById('cancel-save-btn').addEventListener('click', () => elements.modal.classList.add('hidden'));
-            document.getElementById('versions-select').addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
-            document.getElementById('delete-btn').addEventListener('click', deleteVersionFromFirestore);
+            elements.versionsSelect.addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
+            elements.confirmDeleteBtn.addEventListener('click', deleteVersionFromFirestore);
 
             // --- DÉMARRAGE DE L'APPLICATION ---
             listenForVersionsChanges();

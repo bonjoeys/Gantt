@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Planning - Diagramme de Gantt de l'Appel d'Offres Agenda</title>
+    <title>Pilotage de l'Appel d'Offres</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
@@ -14,17 +14,35 @@
         .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 40px auto; }
         .logo { height: 50px; }
         h1 { text-align: left; color: #d08770; font-weight: 600; margin: 0; }
+        
         .page-container { display: flex; flex-wrap: wrap; gap: 30px; max-width: 1800px; margin: 0 auto; }
         .controls-container { flex: 1; min-width: 450px; background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .gantt-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .right-column { flex: 2; min-width: 600px; display: flex; flex-direction: column; gap: 30px; }
+        .gantt-container { flex: 2; min-width: 600px; background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
+        
+        .versions-manager {
+            max-width: 1800px;
+            margin: 0 auto 30px auto;
+            background-color: #ffffff;
+            padding: 25px 30px;
+            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
+            border-radius: 12px;
+            border: 1px solid #e5e9f0;
+        }
+
         .controls-container h2 { margin-top: 0; font-size: 1.4em; color: #2e3440; border-bottom: 2px solid #eceff4; padding-bottom: 10px; }
         #tasks-table { width: 100%; border-collapse: collapse; }
         #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; }
         #tasks-table td.task-name { font-weight: 500; cursor: help; }
+        
+        #tasks-table td.task-duration {
+            text-align: center;
+            font-weight: 500;
+            color: #4c566a;
+            white-space: nowrap;
+        }
+
         #tasks-table input[type="date"] { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
-        .versions-manager { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
         .versions-manager h3 { margin-top: 0; font-size: 1.1em; color: #434c5e; }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
         .versions-actions { display: flex; gap: 10px; margin-top: 10px; }
@@ -39,13 +57,23 @@
         .modal-actions { display: flex; gap: 10px; margin-top: 20px; }
         .modal-actions .button { margin-top: 0; }
         .hidden { display: none; }
-        @media print { @page { size: A4 landscape; margin: 1cm; } .controls-container, .versions-manager { display: none; } .page-container, .main-header { flex-direction: column; align-items: flex-start; } .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; } .right-column { gap: 0; } }
+        @media print { @page { size: A4 landscape; margin: 1cm; } .controls-container, .versions-manager, .main-header { display: none; } .page-container { flex-direction: column; align-items: flex-start; max-width: 100%; gap: 0; } .gantt-container { width: 100%; max-width: 100%; flex: auto; box-shadow: none; border: none; } }
     </style>
 </head>
 <body>
     <div class="main-header">
         <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
-        <h1>Planning - Diagramme de Gantt de l'Appel d'Offres Agenda</h1>
+        <h1>Pilotage de l'Appel d'Offres</h1>
+    </div>
+
+    <div class="versions-manager">
+        <h3>Charger une version</h3>
+        <select id="versions-select">
+            <option value="">-- Sélectionnez une version --</option>
+        </select>
+        <div class="versions-actions">
+            <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
+        </div>
     </div>
 
     <div class="page-container">
@@ -55,20 +83,8 @@
             <button class="button save-button" id="save-btn">Enregistrer une version</button>
             <button class="button reset-button" id="reset-btn">Réinitialiser (planning d'origine)</button>
         </div>
-
-        <div class="right-column">
-            <div class="gantt-container">
-                <div id="gantt-chart"></div>
-            </div>
-            <div class="versions-manager">
-                <h3>Charger une version</h3>
-                <select id="versions-select">
-                    <option value="">-- Sélectionnez une version --</option>
-                </select>
-                <div class="versions-actions">
-                    <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
-                </div>
-            </div>
+        <div class="gantt-container">
+            <div id="gantt-chart"></div>
         </div>
     </div>
 
@@ -87,7 +103,7 @@
     <script>
         // --- CONFIGURATION FIREBASE ---
         const firebaseConfig = {
-            apiKey: "AIzaSyB8OWLAAZr9kVdZKZgYTndAd8fPUCzLxMc",
+            apiKey: "AIzaSyB8OWLAAZ...[VOTRE CLÉ API]", 
             authDomain: "gantt-agenda-sgs.firebaseapp.com",
             projectId: "gantt-agenda-sgs",
             storageBucket: "gantt-agenda-sgs.appspot.com",
@@ -95,8 +111,6 @@
             appId: "1:993389286221:web:1f2adf3435c014b4851d04",
             measurementId: "G-QVK435BBE5"
         };
-
-        // Initialisation de Firebase
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const versionsCollection = db.collection("versions");
@@ -120,7 +134,21 @@
             colors: ['#e67e22'], xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
             yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
             grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
-            tooltip: { theme: 'dark', custom: function({seriesIndex, dataPointIndex}) { const task = currentTasks[dataPointIndex]; if (!task) return ''; const options = { year: 'numeric', month: 'long', day: 'numeric' }; const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 300px;"; return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; } },
+            tooltip: { 
+                theme: 'dark', 
+                custom: function({seriesIndex, dataPointIndex}) { 
+                    const task = currentTasks[dataPointIndex]; 
+                    if (!task) return ''; 
+                    const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
+                    const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
+                    const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); 
+                    
+                    // MODIFIÉ: Augmentation de la largeur et ajout du retour à la ligne
+                    const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
+
+                    return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; 
+                } 
+            },
             annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
         });
         chart.render();
@@ -129,31 +157,62 @@
         const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
         const refreshUI = () => { renderTable(); updateChart(); };
+        
+        function calculateDuration(start, end) {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (isNaN(startDate) || isNaN(endDate) || endDate < startDate) {
+                return 0;
+            }
+            const timeDiff = endDate.getTime() - startDate.getTime();
+            const dayDiff = Math.round(timeDiff / (1000 * 3600 * 24)) + 1;
+            return dayDiff;
+        }
 
+        // --- FONCTIONS PRINCIPALES ---
         function renderTable() {
             const tableWrapper = document.getElementById('table-wrapper');
-            let tableHTML = `<table id="tasks-table"><thead><tr><th>Étape</th><th>Début</th><th>Fin</th></tr></thead><tbody>`;
-            currentTasks.forEach((task, index) => {
-                tableHTML += `<tr><td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td><td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td><td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td></tr>`;
+            let tableHTML = `<table id="tasks-table">
+                <thead>
+                    <tr><th>Étape</th><th>Début</th><th>Fin</th><th>Durée (j)</th></tr>
+                </thead>
+                <tbody>`;
+            
+            currentTasks.forEach((task) => {
+                const duration = calculateDuration(task.start, task.end);
+                tableHTML += `
+                    <tr>
+                        <td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td>
+                        <td><input type="date" value="${task.start}" data-index="${currentTasks.indexOf(task)}" data-type="start"></td>
+                        <td><input type="date" value="${task.end}" data-index="${currentTasks.indexOf(task)}" data-type="end"></td>
+                        <td class="task-duration" id="duration-${task.id}">${duration} j</td>
+                    </tr>`;
             });
+
             tableHTML += `</tbody></table>`;
             tableWrapper.innerHTML = tableHTML;
             document.querySelectorAll('#tasks-table input').forEach(input => input.addEventListener('change', handleInputChange));
         }
 
-        function updateChart() {
-            chart.updateSeries(formatDataForChart(currentTasks));
-        }
+        function updateChart() { chart.updateSeries(formatDataForChart(currentTasks)); }
 
         function handleInputChange(event) {
             const { index, type } = event.target.dataset;
             currentTasks[index][type] = event.target.value;
             const task = currentTasks[index];
+            
             if (new Date(task.end) < new Date(task.start)) {
                 if (type === 'start') task.end = task.start;
                 else task.start = task.end;
                 renderTable();
+            } else {
+                const newDuration = calculateDuration(task.start, task.end);
+                const durationCell = document.getElementById(`duration-${task.id}`);
+                if (durationCell) {
+                    durationCell.textContent = `${newDuration} j`;
+                }
             }
+            
             saveCurrentTasks();
             updateChart();
         }
@@ -169,12 +228,11 @@
             currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
             refreshUI();
         }
-
+        
         // --- GESTION DES VERSIONS AVEC FIRESTORE ---
         const modal = document.getElementById('save-modal');
         const versionNameInput = document.getElementById('version-name-input');
         const versionsSelect = document.getElementById('versions-select');
-
         versionsCollection.orderBy("name").onSnapshot(snapshot => {
             const selectedValue = versionsSelect.value;
             versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
@@ -184,7 +242,7 @@
                 option.textContent = doc.data().name;
                 versionsSelect.appendChild(option);
             });
-            versionsSelect.value = selectedValue;
+            if(selectedValue) versionsSelect.value = selectedValue;
         });
 
         function openSaveModal() { modal.classList.remove('hidden'); versionNameInput.focus(); }
@@ -193,24 +251,18 @@
         async function handleConfirmSave() {
             const name = versionNameInput.value.trim();
             if (!name) { alert("Veuillez donner un nom à votre version."); return; }
-
             const newVersion = { name, tasks: JSON.parse(JSON.stringify(currentTasks)) };
-
             try {
                 const docRef = await versionsCollection.add(newVersion);
                 alert(`Version "${name}" enregistrée avec succès !`);
                 versionsSelect.value = docRef.id;
                 closeSaveModal();
-            } catch (error) {
-                console.error("Erreur d'écriture dans Firestore: ", error);
-                alert("Une erreur est survenue lors de la sauvegarde.");
-            }
+            } catch (error) { console.error("Erreur d'écriture dans Firestore: ", error); alert("Une erreur est survenue."); }
         }
 
         async function handleLoadVersion() {
             const selectedId = versionsSelect.value;
             if (!selectedId) return;
-
             try {
                 const doc = await versionsCollection.doc(selectedId).get();
                 if (doc.exists) {
@@ -218,25 +270,19 @@
                     saveCurrentTasks();
                     refreshUI();
                 }
-            } catch (error) {
-                console.error("Erreur de lecture depuis Firestore: ", error);
-            }
+            } catch (error) { console.error("Erreur de lecture depuis Firestore: ", error); }
         }
         
         async function handleDeleteVersion() {
             const selectedId = versionsSelect.value;
             if (!selectedId) { alert("Veuillez sélectionner une version à supprimer."); return; }
-            
             const selectedOption = versionsSelect.options[versionsSelect.selectedIndex];
             const versionName = selectedOption.text;
-
             if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
                 try {
                     await versionsCollection.doc(selectedId).delete();
                     alert(`Version "${versionName}" supprimée.`);
-                } catch (error) {
-                    console.error("Erreur de suppression dans Firestore: ", error);
-                }
+                } catch (error) { console.error("Erreur de suppression dans Firestore: ", error); }
             }
         }
 

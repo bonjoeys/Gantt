@@ -44,41 +44,10 @@
     </style>
 </head>
 <body>
-    <div class="main-header">
-        <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
-        <h1>Pilotage de l'Appel d'Offres</h1>
-    </div>
-    <div class="versions-manager">
-        <h3>Charger une version</h3>
-        <select id="versions-select">
-            <option value="">-- Sélectionnez une version --</option>
-        </select>
-        <div class="versions-actions">
-            <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
-        </div>
-    </div>
-    <div class="page-container">
-        <div class="gantt-container">
-            <div id="gantt-chart"></div>
-        </div>
-        <div class="controls-container">
-            <h2>Tableau de Contrôle</h2>
-            <div id="table-wrapper"></div>
-            <button class="button save-button" id="save-btn">Enregistrer une version</button>
-            <button class="button reset-button" id="reset-btn">Réinitialiser (planning d'origine)</button>
-        </div>
-    </div>
-    <div id="save-modal" class="modal-overlay hidden">
-        <div class="modal-content">
-            <h3>Enregistrer la version du planning</h3>
-            <p>Donnez un nom à cette version (ex: "Scénario optimiste", "Version V2 client", ...)</p>
-            <input type="text" id="version-name-input" placeholder="Nom de la version...">
-            <div class="modal-actions">
-                <button id="confirm-save-btn" class="button save-button">Confirmer</button>
-                <button id="cancel-save-btn" class="button reset-button">Annuler</button>
-            </div>
-        </div>
-    </div>
+    <div class="main-header">...</div>
+    <div class="versions-manager">...</div>
+    <div class="page-container">...</div>
+    <div id="save-modal" class="modal-overlay hidden">...</div>
 
     <script>
         const firebaseConfig = {
@@ -96,8 +65,9 @@
         const initialTasks = [ /* ... */ ];
         
         let currentTasks = [];
-        let chart; // MODIFIÉ: On déclare la variable chart ici pour qu'elle soit accessible partout
+        let chart;
 
+        // ... autres fonctions ...
         const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
         const refreshUI = () => { renderTable(); updateChart(); };
@@ -111,7 +81,28 @@
         const modal = document.getElementById('save-modal');
         const versionNameInput = document.getElementById('version-name-input');
         const versionsSelect = document.getElementById('versions-select');
-        versionsCollection.orderBy("name").onSnapshot(snapshot => { /* ... */ });
+
+        // NOUVEAU: Ajout de messages de débogage et d'une gestion d'erreur
+        console.log("Script initialisé. Tentative de connexion à la collection 'versions'...");
+
+        versionsCollection.orderBy("name").onSnapshot(snapshot => {
+            console.log("Connexion réussie ! L'écouteur onSnapshot a été déclenché. Documents trouvés :", snapshot.size);
+            
+            const selectedValue = versionsSelect.value;
+            versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
+            snapshot.forEach(doc => {
+                const option = document.createElement('option');
+                option.value = doc.id;
+                option.textContent = doc.data().name;
+                versionsSelect.appendChild(option);
+            });
+            if(selectedValue) versionsSelect.value = selectedValue;
+
+        }, error => {
+            console.error("ERREUR DE CONNEXION FIRESTORE : L'écouteur onSnapshot a échoué.", error);
+            alert("Impossible de se connecter à la base de données. Vérifiez la console (F12) pour les erreurs.");
+        });
+
         function openSaveModal() { /* ... */ }
         function closeSaveModal() { /* ... */ }
         async function handleConfirmSave() { /* ... */ }
@@ -119,39 +110,14 @@
         async function handleDeleteVersion() { /* ... */ }
         
         document.addEventListener('DOMContentLoaded', () => {
-            // MODIFIÉ: L'initialisation du graphique se fait maintenant ici, une fois la page prête
-            chart = new ApexCharts(document.querySelector("#gantt-chart"), {
-                series: [], 
-                chart: { height: 600, type: 'rangeBar' }, 
-                plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
-                colors: ['#e67e22'], 
-                xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
-                yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
-                grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
-                tooltip: { 
-                    theme: 'dark', 
-                    custom: function({seriesIndex, dataPointIndex}) { 
-                        const task = currentTasks[dataPointIndex]; 
-                        if (!task) return ''; 
-                        const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
-                        const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
-                        const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); 
-                        const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
-                        return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; 
-                    } 
-                },
-                annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
-            });
+            console.log("DOM entièrement chargé. Initialisation du graphique...");
+            chart = new ApexCharts(document.querySelector("#gantt-chart"), { /* ... options ... */ });
             chart.render();
 
+            console.log("Graphique initialisé. Chargement des tâches initiales...");
             loadInitialTasks();
             
-            document.getElementById('reset-btn').addEventListener('click', resetPlanning);
-            document.getElementById('save-btn').addEventListener('click', openSaveModal);
-            document.getElementById('confirm-save-btn').addEventListener('click', handleConfirmSave);
-            document.getElementById('cancel-save-btn').addEventListener('click', closeSaveModal);
-            document.getElementById('versions-select').addEventListener('change', handleLoadVersion);
-            document.getElementById('delete-btn').addEventListener('click', handleDeleteVersion);
+            // ... autres écouteurs d'événements ...
         });
     </script>
 </body>

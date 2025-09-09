@@ -20,12 +20,43 @@
         .controls-container h2, .versions-manager h3 { margin-top: 0; font-size: 1.4em; color: #2e3440; }
         .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
         #tasks-table { width: 100%; border-collapse: collapse; }
-        #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; vertical-align: middle; }
-        #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; }
+        #tasks-table th, #tasks-table td { padding: 8px; text-align: left; border-bottom: 1px solid #eceff4; vertical-align: middle; }
+        #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; padding-bottom: 12px; }
         #tasks-table th.center-header { text-align: center; }
-        #tasks-table td.task-name { font-weight: 500; cursor: help; }
+        #tasks-table td.task-name-cell { 
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 500; 
+        }
+        #tasks-table td.task-name-cell span {
+            font-size: 1.2em;
+        }
+        #tasks-table td.task-name-cell input {
+            text-align: left;
+            flex-grow: 1;
+            border-color: transparent;
+            background-color: transparent;
+        }
+        #tasks-table td.task-name-cell input:hover {
+            border-color: #d8dee9;
+        }
+        #tasks-table td.task-name-cell input:focus {
+            border-color: #5e81ac;
+            outline: none;
+        }
         #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; }
-        #tasks-table input[type="date"], #tasks-table select { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; text-align: center; }
+        #tasks-table input, #tasks-table select, #tasks-table textarea { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #d8dee9; 
+            border-radius: 6px; 
+            font-family: inherit; 
+            font-size: 14px; 
+            box-sizing: border-box; 
+        }
+        #tasks-table input[type="date"], #tasks-table select { text-align: center; }
+        #tasks-table textarea { resize: vertical; min-height: 40px; }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
         .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
         .save-button { background-color: #a3be8c; } .save-button:hover { background-color: #b5d5a2; }
@@ -99,24 +130,22 @@
             measurementId: "G-QVK435BBE5"
         };
         const initialTasks = [
-            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "...", status: "À faire" },
-            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "...", status: "À faire" },
-            { id: 'task_qr', emoji: '💬', name: 'Questions & Réponses aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "...", status: "À faire" },
-            { id: 'task_shortlist', emoji: '✅', name: 'Communication de la shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "...", status: "À faire" },
-            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenances & Démonstrations", start: '2025-10-20', end: '2025-10-24', description: "...", status: "À faire" },
-            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "...", status: "À faire" },
-            { id: 'task_loi', emoji: '⚖️', name: "Délibération & Lettre d'Intention (LOI)", start: '2025-11-05', end: '2025-11-06', description: "...", status: "À faire" },
-            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "...", status: "À faire" },
-            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "...", status: "À faire" }
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "Phase de publication de l'appel d'offres et de réception des propositions initiales des fournisseurs. Les soumissionnaires préparent leurs dossiers.", status: "À faire" },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "Ouverture et évaluation des offres reçues selon les critères définis. Comparaison technique, fonctionnelle et financière des propositions.", status: "À faire" },
+            { id: 'task_qr', emoji: '💬', name: 'Questions & Réponses aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "Session de clarification où les soumissionnaires peuvent poser des questions. L'objectif est de lever les ambiguïtés avant la soumission finale.", status: "À faire" },
+            { id: 'task_shortlist', emoji: '✅', name: 'Communication de la shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "Communication de la liste restreinte des fournisseurs retenus pour la phase suivante. Les candidats non retenus sont également informés.", status: "À faire" },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenances & Démonstrations", start: '2025-10-20', end: '2025-10-24', description: "Présentation orale et démonstration de la solution par les fournisseurs shortlistés. Permet d'évaluer la compréhension du besoin et la qualité du produit.", status: "À faire" },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "Phase durant laquelle les fournisseurs ajustent leur offre finale. Intègre les retours des soutenances et des dernières clarifications.", status: "À faire" },
+            { id: 'task_loi', emoji: '⚖️', name: "Délibération & Lettre d'Intention (LOI)", start: '2025-11-05', end: '2025-11-06', description: "Décision finale du comité de sélection et rédaction de la Lettre d'Intention (LOI). Officialise le choix du fournisseur avant la contractualisation.", status: "À faire" },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "Négociation des termes finaux du contrat et validation juridique. Finalisation de tous les aspects légaux, techniques et financiers.", status: "À faire" },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "Signature officielle du contrat par toutes les parties. Marque le début effectif de la collaboration avec le fournisseur choisi.", status: "À faire" }
         ];
         
-        // --- ÉTAT DE L'APPLICATION ---
         let currentTasks = [];
         let allVersions = [];
         let chart;
         let db;
 
-        // --- FONCTIONS UTILITAIRES ---
         const calculateDuration = (start, end) => {
             const startDate = new Date(start);
             const endDate = new Date(end);
@@ -126,10 +155,8 @@
         };
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
 
-        // --- LOGIQUE PRINCIPALE ---
         document.addEventListener('DOMContentLoaded', () => {
             
-            // --- INITIALISATION DES SERVICES ---
             try {
                 firebase.initializeApp(firebaseConfig);
                 db = firebase.firestore();
@@ -139,7 +166,6 @@
                 return;
             }
 
-            // --- SÉLECTION DES ÉLÉMENTS DU DOM ---
             const elements = {
                 modal: document.getElementById('save-modal'),
                 versionNameInput: document.getElementById('version-name-input'),
@@ -152,7 +178,6 @@
                 setAsDefaultCheckbox: document.getElementById('set-as-default-checkbox')
             };
             
-            // --- INITIALISATION DU GRAPHIQUE ---
             const chartOptions = {
                 series: [], 
                 chart: { height: 600, type: 'rangeBar', zoom: { enabled: false } },
@@ -186,17 +211,21 @@
             chart = new ApexCharts(elements.ganttChart, chartOptions);
             chart.render();
 
-            // --- FONCTIONS DE MISE À JOUR DE L'INTERFACE ---
             const renderTable = () => {
-                let tableHTML = `<table id="tasks-table"><thead><tr><th>Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th><th class="center-header">Statut</th></tr></thead><tbody>`;
+                // MODIFIÉ: Tous les en-têtes sont maintenant centrés
+                let tableHTML = `<table id="tasks-table"><thead><tr><th class="center-header">Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th><th class="center-header">Description</th><th class="center-header">Statut</th></tr></thead><tbody>`;
                 currentTasks.forEach((task, index) => {
                     const duration = calculateDuration(task.start, task.end);
                     const status = task.status || 'À faire';
                     tableHTML += `<tr>
-                        <td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td>
+                        <td class="task-name-cell">
+                            <span>${task.emoji}</span>
+                            <input type="text" value="${task.name}" data-index="${index}" data-type="name" title="Modifier le nom de l'étape">
+                        </td>
                         <td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td>
                         <td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td>
                         <td class="task-duration" id="duration-${task.id}">${duration} j</td>
+                        <td><textarea data-index="${index}" data-type="description">${task.description || ''}</textarea></td>
                         <td>
                             <select data-index="${index}" data-type="status">
                                 <option value="À faire" ${status === 'À faire' ? 'selected' : ''}>À faire</option>
@@ -208,10 +237,23 @@
                 });
                 tableHTML += `</tbody></table>`;
                 elements.tableWrapper.innerHTML = tableHTML;
-                elements.tableWrapper.querySelectorAll('input[type="date"]').forEach(input => input.addEventListener('change', handleInputChange));
-                elements.tableWrapper.querySelectorAll('select').forEach(select => select.addEventListener('change', handleStatusChange));
+                elements.tableWrapper.querySelectorAll('input, textarea, select').forEach(input => input.addEventListener('change', handleInputChange));
             };
-            const updateChart = () => { if (chart) chart.updateSeries(formatDataForChart(currentTasks)); };
+            const updateChart = () => {
+                if (chart) {
+                    chart.updateOptions({
+                        series: formatDataForChart(currentTasks),
+                        annotations: {
+                            xaxis: [{
+                                x: new Date().getTime(),
+                                borderColor: '#e44d26',
+                                strokeDashArray: 2,
+                                label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } }
+                            }]
+                        }
+                    });
+                }
+            };
             const refreshUI = () => { renderTable(); updateChart(); };
             const updateVersionsDropdown = (versions) => {
                 const selectedValue = elements.versionsSelect.value;
@@ -234,27 +276,33 @@
                 });
             };
 
-            // --- FONCTIONS DE GESTION DES DONNÉES ---
             const setCurrentTasks = (tasks) => {
-                const tasksWithStatus = tasks.map(task => ({ ...task, status: task.status || 'À faire' }));
-                currentTasks = JSON.parse(JSON.stringify(tasksWithStatus));
+                const tasksWithDefaults = tasks.map(task => ({ 
+                    ...task, 
+                    status: task.status || 'À faire',
+                    description: task.description || ''
+                }));
+                currentTasks = JSON.parse(JSON.stringify(tasksWithDefaults));
                 localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
                 refreshUI();
             };
             const handleInputChange = (event) => {
                 const { index, type } = event.target.dataset;
                 currentTasks[index][type] = event.target.value;
+                
+                if (type === 'start' || type === 'end') {
+                    const task = currentTasks[index];
+                    if (new Date(task.end) < new Date(task.start)) {
+                        if (type === 'start') task.end = task.start;
+                        else task.start = task.end;
+                    }
+                    refreshUI();
+                } else {
+                    updateChart();
+                }
                 localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-                refreshUI(); 
-            };
-            const handleStatusChange = (event) => {
-                const { index } = event.target.dataset;
-                currentTasks[index].status = event.target.value;
-                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-                updateChart(); 
             };
 
-            // --- INTERACTIONS AVEC FIREBASE ---
             const loadVersionFromFirestore = async (versionId) => {
                 if (!versionId) return;
                 try {
@@ -300,9 +348,8 @@
                     await batch.commit();
                     alert(`Version "${newName}" sauvegardée avec succès !`);
                     elements.modal.classList.add('hidden');
-                } catch (error) { console.error("Erreur de sauvegarde:", error); alert("Une erreur est survenue lors de la sauvegarde. Veuillez vérifier la console pour plus de détails."); }
+                } catch (error) { console.error("Erreur de sauvegarde:", error); alert("Une erreur est survenue lors de la sauvegarde."); }
             };
-
             const deleteVersionFromFirestore = async () => {
                 const selectedId = elements.modalVersionsSelect.value;
                 if (!selectedId || selectedId === 'new') return;
@@ -327,7 +374,6 @@
                     alert("Impossible d'écouter les mises à jour de la base de données.");
                 });
             };
-
             const loadInitialTasks = async () => {
                 try {
                     const snapshot = await db.collection("versions").where("isDefault", "==", true).limit(1).get();
@@ -343,7 +389,6 @@
                 setCurrentTasks(savedCurrent ? JSON.parse(savedCurrent) : initialTasks);
             };
 
-            // --- ÉVÉNEMENTS (EVENT LISTENERS) ---
             document.getElementById('manage-versions-btn').addEventListener('click', () => {
                 populateModalDropdown();
                 elements.modalVersionsSelect.value = 'new';
@@ -371,13 +416,11 @@
                     elements.defaultVersionWrapper.classList.remove('hidden');
                 }
             });
-
             document.getElementById('confirm-save-btn').addEventListener('click', handleSaveOrUpdateVersion);
             document.getElementById('cancel-save-btn').addEventListener('click', () => elements.modal.classList.add('hidden'));
             elements.versionsSelect.addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
             elements.confirmDeleteBtn.addEventListener('click', deleteVersionFromFirestore);
 
-            // --- DÉMARRAGE DE L'APPLICATION ---
             listenForVersionsChanges();
             loadInitialTasks();
         });

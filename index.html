@@ -3,30 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Appel d'offres Agenda SGS - Planning & Diagramme de Gantt</title>
+    <title>Appel d'offres pour la solution Agenda : Planning & Gantt</title>
     <script src="https://cdn.jsdelivr.net/npm/apexcharts"></script>
     
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-app-compat.js"></script>
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <style>
-        /* ... Le CSS reste inchangé ... */
+        /* Le CSS reste identique */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; background-color: #f8f9fa; color: #3b4252; margin: 0; padding: 20px; }
         .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 40px auto; }
         .logo { height: 50px; }
         h1 { text-align: left; color: #d08770; font-weight: 600; margin: 0; }
         .page-container { display: flex; flex-direction: column; gap: 30px; max-width: 1800px; margin: 0 auto; }
-        .controls-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .gantt-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .versions-manager { max-width: 1800px; margin: 0 auto 30px auto; background-color: #ffffff; padding: 25px 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
-        .controls-container h2 { margin-top: 0; font-size: 1.4em; color: #2e3440; border-bottom: 2px solid #eceff4; padding-bottom: 10px; }
+        .controls-container, .gantt-container, .versions-manager { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
+        .versions-manager { max-width: 1800px; margin: 0 auto 30px auto; padding: 25px 30px; }
+        .controls-container h2, .versions-manager h3 { margin-top: 0; font-size: 1.4em; color: #2e3440; }
+        .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
         #tasks-table { width: 100%; border-collapse: collapse; }
         #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; }
+        
+        /* MODIFIÉ: Centrage des en-têtes de colonnes */
+        #tasks-table th.center-header {
+            text-align: center;
+        }
+
         #tasks-table td.task-name { font-weight: 500; cursor: help; }
         #tasks-table td.task-duration { text-align: center; font-weight: 500; color: #4c566a; white-space: nowrap; }
-        #tasks-table input[type="date"] { width: 100%; padding: 8px; border: 1px solid #d8dee9; border-radius: 6px; font-family: inherit; font-size: 14px; box-sizing: border-box; }
-        .versions-manager h3 { margin-top: 0; font-size: 1.1em; color: #434c5e; }
+        #tasks-table input[type="date"] { 
+            width: 100%; 
+            padding: 8px; 
+            border: 1px solid #d8dee9; 
+            border-radius: 6px; 
+            font-family: inherit; 
+            font-size: 14px; 
+            box-sizing: border-box; 
+            text-align: center;
+        }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
         .versions-actions { display: flex; gap: 10px; margin-top: 10px; }
         .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
@@ -44,12 +58,43 @@
     </style>
 </head>
 <body>
-    <div class="main-header">...</div>
-    <div class="versions-manager">...</div>
-    <div class="page-container">...</div>
-    <div id="save-modal" class="modal-overlay hidden">...</div>
+    <div class="main-header">
+        <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
+        <h1>Appel d'offres pour la solution Agenda : Planning & Gantt</h1>
+    </div>
+    <div class="versions-manager">
+        <h3>Charger une version</h3>
+        <select id="versions-select">
+            <option value="">-- Chargement des versions... --</option>
+        </select>
+        <div class="versions-actions">
+            <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
+        </div>
+    </div>
+    <div class="page-container">
+        <div class="gantt-container">
+            <div id="gantt-chart"></div>
+        </div>
+        <div class="controls-container">
+            <h2>Planning</h2>
+            <div id="table-wrapper"></div>
+            <button class="button save-button" id="save-btn">Enregistrer une version</button>
+        </div>
+    </div>
+    <div id="save-modal" class="modal-overlay hidden">
+        <div class="modal-content">
+            <h3>Enregistrer la version du planning</h3>
+            <p>Donnez un nom à cette version (ex: "Scénario optimiste", "Version V2 client", ...)</p>
+            <input type="text" id="version-name-input" placeholder="Nom de la version...">
+            <div class="modal-actions">
+                <button id="confirm-save-btn" class="button save-button">Confirmer</button>
+                <button id="cancel-save-btn" class="button reset-button">Annuler</button>
+            </div>
+        </div>
+    </div>
 
     <script>
+        // --- CONFIGURATION ET DONNÉES GLOBALES ---
         const firebaseConfig = {
             apiKey: "AIzaSyB8OWLAAZr9kVdZKZgYTndAd8fPUCzLxMc", 
             authDomain: "gantt-agenda-sgs.firebaseapp.com",
@@ -59,87 +104,231 @@
             appId: "1:993389286221:web:1f2adf3435c014b4851d04",
             measurementId: "G-QVK435BBE5"
         };
-        firebase.initializeApp(firebaseConfig);
-        const db = firebase.firestore();
-        const versionsCollection = db.collection("versions");
-        const initialTasks = [ /* ... */ ];
+        const initialTasks = [
+            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "Phase de publication de l'appel d'offres et de réception des propositions initiales des fournisseurs. Les soumissionnaires préparent leurs dossiers." },
+            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "Ouverture et évaluation des offres reçues selon les critères définis. Comparaison technique, fonctionnelle et financière des propositions." },
+            { id: 'task_qr', emoji: '💬', name: 'Questions & Réponses aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "Session de clarification où les soumissionnaires peuvent poser des questions. L'objectif est de lever les ambiguïtés avant la soumission finale." },
+            { id: 'task_shortlist', emoji: '✅', name: 'Communication de la shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "Communication de la liste restreinte des fournisseurs retenus pour la phase suivante. Les candidats non retenus sont également informés." },
+            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenances & Démonstrations", start: '2025-10-20', end: '2025-10-24', description: "Présentation orale et démonstration de la solution par les fournisseurs shortlistés. Permet d'évaluer la compréhension du besoin et la qualité du produit." },
+            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "Phase durant laquelle les fournisseurs ajustent leur offre finale. Intègre les retours des soutenances et des dernières clarifications." },
+            { id: 'task_loi', emoji: '⚖️', name: "Délibération & Lettre d'Intention (LOI)", start: '2025-11-05', end: '2025-11-06', description: "Décision finale du comité de sélection et rédaction de la Lettre d'Intention (LOI). Officialise le choix du fournisseur avant la contractualisation." },
+            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "Négociation des termes finaux du contrat et validation juridique. Finalisation de tous les aspects légaux, techniques et financiers." },
+            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "Signature officielle du contrat par toutes les parties. Marque le début effectif de la collaboration avec le fournisseur choisi." }
+        ];
         
+        // --- ÉTAT DE L'APPLICATION ---
         let currentTasks = [];
         let chart;
+        let db;
 
-        const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
-        const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
-        const refreshUI = () => { renderTable(); updateChart(); };
-        function calculateDuration(start, end) { /* ... */ }
-        function renderTable() { /* ... */ }
-        function updateChart() { if (chart) { chart.updateSeries(formatDataForChart(currentTasks)); } }
-        function handleInputChange(event) { /* ... */ }
-        function resetPlanning() { /* ... */ }
-        async function loadInitialTasks(versionsSelect) {
-             const defaultVersionName = "ajustement planning suite reunion 050925";
-            let loadedFromDefault = false;
-            try {
-                const snapshot = await versionsCollection.where("name", "==", defaultVersionName).limit(1).get();
-                if (!snapshot.empty) {
-                    const defaultDoc = snapshot.docs[0];
-                    currentTasks = JSON.parse(JSON.stringify(defaultDoc.data().tasks));
-                    if (versionsSelect) { versionsSelect.value = defaultDoc.id; }
-                    loadedFromDefault = true;
-                }
-            } catch (error) { console.error("Impossible de charger la version par défaut.", error); }
-            if (!loadedFromDefault) {
-                const savedCurrent = localStorage.getItem('ganttCurrentTasks');
-                currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
-            }
-            refreshUI();
-        }
-        
-        async function handleLoadVersion(versionsSelect) {
-            const selectedId = versionsSelect.value;
-            if (!selectedId) return;
-            try {
-                const doc = await versionsCollection.doc(selectedId).get();
-                if (doc.exists) {
-                    currentTasks = JSON.parse(JSON.stringify(doc.data().tasks));
-                    saveCurrentTasks();
-                    refreshUI();
-                }
-            } catch (error) { console.error("Erreur de lecture", error); }
-        }
+        // --- FONCTIONS UTILITAIRES ---
+        const calculateDuration = (start, end) => {
+            const startDate = new Date(start);
+            const endDate = new Date(end);
+            if (isNaN(startDate) || isNaN(endDate) || endDate < startDate) return 0;
+            const timeDiff = endDate.getTime() - startDate.getTime();
+            return Math.round(timeDiff / (1000 * 3600 * 24)) + 1;
+        };
 
+        const formatDataForChart = (tasks) => [{ 
+            name: 'Planning', 
+            data: tasks.map(t => ({ 
+                x: `${t.emoji} ${t.name}`, 
+                y: [new Date(t.start).getTime(), new Date(t.end).getTime()] 
+            })) 
+        }];
+
+
+        // --- LOGIQUE PRINCIPALE AU CHARGEMENT DE LA PAGE ---
         document.addEventListener('DOMContentLoaded', () => {
-            // MODIFIÉ: On déclare toutes les variables liées au DOM ici
-            const modal = document.getElementById('save-modal');
-            const versionNameInput = document.getElementById('version-name-input');
-            const versionsSelect = document.getElementById('versions-select');
+            
+            // --- INITIALISATION DES SERVICES ---
+            try {
+                firebase.initializeApp(firebaseConfig);
+                db = firebase.firestore();
+            } catch (e) {
+                console.error("Erreur d'initialisation de Firebase", e);
+                alert("Impossible d'initialiser Firebase. Vérifiez la configuration.");
+                return;
+            }
 
-            chart = new ApexCharts(document.querySelector("#gantt-chart"), { /* ... options ... */ });
+            // --- SÉLECTION DES ÉLÉMENTS DU DOM ---
+            const elements = {
+                modal: document.getElementById('save-modal'),
+                versionNameInput: document.getElementById('version-name-input'),
+                versionsSelect: document.getElementById('versions-select'),
+                tableWrapper: document.getElementById('table-wrapper')
+            };
+            
+            // --- INITIALISATION DU GRAPHIQUE ---
+            chart = new ApexCharts(document.querySelector("#gantt-chart"), {
+                series: [], 
+                chart: { 
+                    height: 600, 
+                    type: 'rangeBar',
+                    zoom: {
+                        enabled: false
+                    }
+                }, 
+                plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
+                colors: ['#e67e22'], 
+                xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
+                yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
+                grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
+                tooltip: { 
+                    theme: 'dark', 
+                    custom: function({seriesIndex, dataPointIndex}) { 
+                        const task = currentTasks[dataPointIndex]; 
+                        if (!task) return ''; 
+                        const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
+                        const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
+                        const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); 
+                        const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
+                        return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; 
+                    } 
+                },
+                annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
+            });
             chart.render();
 
-            versionsCollection.orderBy("name").onSnapshot(snapshot => {
-                const selectedValue = versionsSelect.value;
-                versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
-                snapshot.forEach(doc => {
-                    const option = document.createElement('option');
-                    option.value = doc.id;
-                    option.textContent = doc.data().name;
-                    versionsSelect.appendChild(option);
+            // --- FONCTIONS DE MISE À JOUR DE L'INTERFACE ---
+            const renderTable = () => {
+                // MODIFIÉ: Ajout de la classe "center-header" aux en-têtes
+                let tableHTML = `<table id="tasks-table"><thead><tr><th>Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th></tr></thead><tbody>`;
+                currentTasks.forEach((task, index) => {
+                    const duration = calculateDuration(task.start, task.end);
+                    tableHTML += `<tr><td class="task-name" title="${task.description}">${task.emoji} ${task.name}</td><td><input type="date" value="${task.start}" data-index="${index}" data-type="start"></td><td><input type="date" value="${task.end}" data-index="${index}" data-type="end"></td><td class="task-duration" id="duration-${task.id}">${duration} j</td></tr>`;
                 });
-                if(selectedValue) { versionsSelect.value = selectedValue; }
-            }, error => {
-                console.error("ERREUR FIRESTORE:", error);
-                alert("Impossible de se connecter à la base de données.");
-            });
+                tableHTML += `</tbody></table>`;
+                elements.tableWrapper.innerHTML = tableHTML;
+                elements.tableWrapper.querySelectorAll('input[type="date"]').forEach(input => input.addEventListener('change', handleInputChange));
+            };
+
+            const updateChart = () => {
+                if (chart) chart.updateSeries(formatDataForChart(currentTasks));
+            };
+
+            const refreshUI = () => { 
+                renderTable(); 
+                updateChart(); 
+            };
             
-            loadInitialTasks(versionsSelect);
+            const updateVersionsDropdown = (versions) => {
+                const selectedValue = elements.versionsSelect.value;
+                elements.versionsSelect.innerHTML = '<option value="">-- Sélectionnez une version --</option>';
+                versions.forEach(version => {
+                    const option = document.createElement('option');
+                    option.value = version.id;
+                    option.textContent = version.name;
+                    elements.versionsSelect.appendChild(option);
+                });
+                if(selectedValue) elements.versionsSelect.value = selectedValue;
+            };
+
+            // --- FONCTIONS DE GESTION DES DONNÉES ---
+            const setCurrentTasks = (tasks) => {
+                currentTasks = JSON.parse(JSON.stringify(tasks));
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                refreshUI();
+            };
+
+            const handleInputChange = (event) => {
+                const { index, type } = event.target.dataset;
+                const task = currentTasks[index];
+                
+                task[type] = event.target.value;
+                
+                if (new Date(task.end) < new Date(task.start)) {
+                    if (type === 'start') task.end = task.start;
+                    else task.start = task.end;
+                    renderTable();
+                } else {
+                    const durationCell = document.getElementById(`duration-${task.id}`);
+                    if (durationCell) durationCell.textContent = `${calculateDuration(task.start, task.end)} j`;
+                }
+                
+                localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
+                updateChart();
+            };
+
+            // --- INTERACTIONS AVEC FIREBASE ---
+            const loadVersionFromFirestore = async (versionId) => {
+                if (!versionId) return; 
+                try {
+                    const doc = await db.collection("versions").doc(versionId).get();
+                    if (doc.exists) {
+                        setCurrentTasks(doc.data().tasks);
+                    }
+                } catch (error) { console.error("Erreur de lecture", error); }
+            };
+
+            const saveVersionToFirestore = async () => {
+                const name = elements.versionNameInput.value.trim();
+                if (!name) return alert("Veuillez donner un nom à votre version.");
+                
+                const newVersion = { name, tasks: currentTasks };
+                try {
+                    const docRef = await db.collection("versions").add(newVersion);
+                    alert(`Version "${name}" enregistrée avec succès !`);
+                    elements.versionsSelect.value = docRef.id;
+                    elements.modal.classList.add('hidden');
+                } catch (error) { console.error("Erreur d'écriture", error); alert("Une erreur est survenue."); }
+            };
+
+            const deleteVersionFromFirestore = async () => {
+                const selectedId = elements.versionsSelect.value;
+                if (!selectedId) return alert("Veuillez sélectionner une version à supprimer.");
+                
+                const selectedOption = elements.versionsSelect.options[elements.versionsSelect.selectedIndex];
+                const versionName = selectedOption.text;
+
+                if (confirm(`Êtes-vous sûr de vouloir supprimer la version "${versionName}" ?`)) {
+                    try {
+                        await db.collection("versions").doc(selectedId).delete();
+                        alert(`Version "${versionName}" supprimée.`);
+                        setCurrentTasks(initialTasks);
+                    } catch (error) { console.error("Erreur de suppression", error); }
+                }
+            };
             
-            document.getElementById('reset-btn').addEventListener('click', resetPlanning);
-            document.getElementById('save-btn').addEventListener('click', () => modal.classList.remove('hidden'));
-            document.getElementById('confirm-save-btn').addEventListener('click', async () => { /* ... */ });
-            document.getElementById('cancel-save-btn').addEventListener('click', () => modal.classList.add('hidden'));
-            document.getElementById('versions-select').addEventListener('change', () => handleLoadVersion(versionsSelect));
-            document.getElementById('delete-btn').addEventListener('click', async () => { /* ... */ });
+            const listenForVersionsChanges = () => {
+                db.collection("versions").orderBy("name").onSnapshot(snapshot => {
+                    const versions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                    updateVersionsDropdown(versions);
+                }, error => {
+                    console.error("ERREUR FIRESTORE:", error);
+                    alert("Impossible de se connecter à la base de données pour les mises à jour en temps réel.");
+                });
+            };
+
+            const loadInitialTasks = async () => {
+                const defaultVersionName = "Ajustement planning suite réunion 050925";
+                try {
+                    const snapshot = await db.collection("versions").where("name", "==", defaultVersionName).limit(1).get();
+                    if (!snapshot.empty) {
+                        const defaultDoc = snapshot.docs[0];
+                        setCurrentTasks(defaultDoc.data().tasks);
+                        elements.versionsSelect.value = defaultDoc.id;
+                        return;
+                    }
+                } catch (error) { console.error("Impossible de charger la version par défaut.", error); }
+                
+                const savedCurrent = localStorage.getItem('ganttCurrentTasks');
+                setCurrentTasks(savedCurrent ? JSON.parse(savedCurrent) : initialTasks);
+            };
+
+            // --- ÉVÉNEMENTS (EVENT LISTENERS) ---
+            document.getElementById('save-btn').addEventListener('click', () => elements.modal.classList.remove('hidden'));
+            document.getElementById('confirm-save-btn').addEventListener('click', saveVersionToFirestore);
+            document.getElementById('cancel-save-btn').addEventListener('click', () => elements.modal.classList.add('hidden'));
+            document.getElementById('versions-select').addEventListener('change', () => loadVersionFromFirestore(elements.versionsSelect.value));
+            document.getElementById('delete-btn').addEventListener('click', deleteVersionFromFirestore);
+
+            // --- DÉMARRAGE DE L'APPLICATION ---
+            listenForVersionsChanges();
+            loadInitialTasks();
         });
     </script>
 </body>
 </html>
+

@@ -10,44 +10,15 @@
     <script src="https://www.gstatic.com/firebasejs/9.6.10/firebase-firestore-compat.js"></script>
 
     <style>
+        /* ... Le CSS reste inchangé ... */
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Open Sans", "Helvetica Neue", sans-serif; background-color: #f8f9fa; color: #3b4252; margin: 0; padding: 20px; }
         .main-header { display: flex; align-items: center; gap: 25px; max-width: 1800px; margin: 0 auto 40px auto; }
         .logo { height: 50px; }
         h1 { text-align: left; color: #d08770; font-weight: 600; margin: 0; }
-        
-        .page-container { 
-            display: flex; 
-            flex-direction: column; 
-            gap: 30px; 
-            max-width: 1800px; 
-            margin: 0 auto; 
-        }
-
-        .controls-container { 
-            background-color: #ffffff; 
-            padding: 30px; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
-            border-radius: 12px; 
-            border: 1px solid #e5e9f0; 
-        }
-        .gantt-container { 
-            background-color: #ffffff; 
-            padding: 30px; 
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08); 
-            border-radius: 12px; 
-            border: 1px solid #e5e9f0; 
-        }
-
-        .versions-manager {
-            max-width: 1800px;
-            margin: 0 auto 30px auto;
-            background-color: #ffffff;
-            padding: 25px 30px;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-            border-radius: 12px;
-            border: 1px solid #e5e9f0;
-        }
-
+        .page-container { display: flex; flex-direction: column; gap: 30px; max-width: 1800px; margin: 0 auto; }
+        .controls-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
+        .gantt-container { background-color: #ffffff; padding: 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
+        .versions-manager { max-width: 1800px; margin: 0 auto 30px auto; background-color: #ffffff; padding: 25px 30px; box-shadow: 0 6px 20px rgba(0,0,0,0.08); border-radius: 12px; border: 1px solid #e5e9f0; }
         .controls-container h2 { margin-top: 0; font-size: 1.4em; color: #2e3440; border-bottom: 2px solid #eceff4; padding-bottom: 10px; }
         #tasks-table { width: 100%; border-collapse: collapse; }
         #tasks-table th, #tasks-table td { padding: 12px 8px; text-align: left; border-bottom: 1px solid #eceff4; }
@@ -77,7 +48,6 @@
         <img src="SGS_Logo.svg.png" alt="Logo SGS" class="logo">
         <h1>Pilotage de l'Appel d'Offres</h1>
     </div>
-
     <div class="versions-manager">
         <h3>Charger une version</h3>
         <select id="versions-select">
@@ -87,7 +57,6 @@
             <button class="button delete-button" id="delete-btn">Supprimer la version sélectionnée</button>
         </div>
     </div>
-
     <div class="page-container">
         <div class="gantt-container">
             <div id="gantt-chart"></div>
@@ -99,7 +68,6 @@
             <button class="button reset-button" id="reset-btn">Réinitialiser (planning d'origine)</button>
         </div>
     </div>
-
     <div id="save-modal" class="modal-overlay hidden">
         <div class="modal-content">
             <h3>Enregistrer la version du planning</h3>
@@ -125,55 +93,21 @@
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
         const versionsCollection = db.collection("versions");
-        const initialTasks = [
-            { id: 'task_ao', emoji: '📢', name: "Période d'appel d'offres", start: '2025-09-01', end: '2025-10-01', description: "..." },
-            { id: 'task_analyse', emoji: '🔎', name: 'Analyse des offres', start: '2025-10-01', end: '2025-10-08', description: "..." },
-            { id: 'task_qr', emoji: '💬', name: 'Q/R aux soumissionnaires', start: '2025-10-08', end: '2025-10-13', description: "..." },
-            { id: 'task_shortlist', emoji: '✅', name: 'Com. shortlist fournisseurs', start: '2025-10-14', end: '2025-10-15', description: "..." },
-            { id: 'task_soutenance', emoji: '🧑‍🏫', name: "Soutenance / Démonstration", start: '2025-10-20', end: '2025-10-24', description: "..." },
-            { id: 'task_finalisation', emoji: '✍️', name: "Finalisation de l'offre", start: '2025-10-25', end: '2025-10-31', description: "..." },
-            { id: 'task_loi', emoji: '⚖️', name: 'Délibération / LOI', start: '2025-11-05', end: '2025-11-06', description: "..." },
-            { id: 'task_contrat', emoji: '🤝', name: 'Contractualisation', start: '2025-11-05', end: '2025-12-19', description: "..." },
-            { id: 'task_signature', emoji: '🖋️', name: 'Signature', start: '2025-12-24', end: '2025-12-25', description: "..." }
-        ];
+        const initialTasks = [ /* ... */ ];
+        
         let currentTasks = [];
-        const chart = new ApexCharts(document.querySelector("#gantt-chart"), { /* ... options ... */ });
-        chart.render();
+        let chart; // MODIFIÉ: On déclare la variable chart ici pour qu'elle soit accessible partout
+
         const saveCurrentTasks = () => localStorage.setItem('ganttCurrentTasks', JSON.stringify(currentTasks));
         const formatDataForChart = (tasks) => [{ name: 'Planning', data: tasks.map(t => ({ x: `${t.emoji} ${t.name}`, y: [new Date(t.start).getTime(), new Date(t.end).getTime()] })) }];
         const refreshUI = () => { renderTable(); updateChart(); };
         function calculateDuration(start, end) { /* ... */ }
         function renderTable() { /* ... */ }
-        function updateChart() { /* ... */ }
+        function updateChart() { if (chart) { chart.updateSeries(formatDataForChart(currentTasks)); } }
         function handleInputChange(event) { /* ... */ }
         function resetPlanning() { /* ... */ }
-
-        // MODIFIÉ: La fonction charge maintenant la version par défaut depuis Firestore
-        async function loadInitialTasks() {
-            const defaultVersionName = "ajustement planning suite reunion 050925";
-            let loadedFromDefault = false;
-
-            try {
-                const snapshot = await versionsCollection.where("name", "==", defaultVersionName).limit(1).get();
-                if (!snapshot.empty) {
-                    const defaultDoc = snapshot.docs[0];
-                    currentTasks = JSON.parse(JSON.stringify(defaultDoc.data().tasks));
-                    versionsSelect.value = defaultDoc.id; // Pré-sélectionne la version dans la liste
-                    loadedFromDefault = true;
-                }
-            } catch (error) {
-                console.error("Impossible de charger la version par défaut depuis Firestore.", error);
-            }
-
-            // Si la version par défaut n'a pas été trouvée, on utilise le brouillon local ou le planning initial
-            if (!loadedFromDefault) {
-                const savedCurrent = localStorage.getItem('ganttCurrentTasks');
-                currentTasks = savedCurrent ? JSON.parse(savedCurrent) : JSON.parse(JSON.stringify(initialTasks));
-            }
-            
-            refreshUI();
-        }
-
+        async function loadInitialTasks() { /* ... */ }
+        
         const modal = document.getElementById('save-modal');
         const versionNameInput = document.getElementById('version-name-input');
         const versionsSelect = document.getElementById('versions-select');
@@ -185,7 +119,33 @@
         async function handleDeleteVersion() { /* ... */ }
         
         document.addEventListener('DOMContentLoaded', () => {
-            loadInitialTasks(); // La fonction de démarrage est maintenant asynchrone
+            // MODIFIÉ: L'initialisation du graphique se fait maintenant ici, une fois la page prête
+            chart = new ApexCharts(document.querySelector("#gantt-chart"), {
+                series: [], 
+                chart: { height: 600, type: 'rangeBar' }, 
+                plotOptions: { bar: { horizontal: true, borderRadius: 5, distributed: true } },
+                colors: ['#e67e22'], 
+                xaxis: { type: 'datetime', labels: { datetimeUTC: false, style: { colors: '#888' } } },
+                yaxis: { labels: { style: { fontSize: '14px', colors: '#3b4252' }, trim: false, maxWidth: 400 } },
+                grid: { borderColor: '#e5e9f0', row: { colors: ['#f9fafb', '#ffffff'], opacity: 1 } },
+                tooltip: { 
+                    theme: 'dark', 
+                    custom: function({seriesIndex, dataPointIndex}) { 
+                        const task = currentTasks[dataPointIndex]; 
+                        if (!task) return ''; 
+                        const options = { year: 'numeric', month: 'long', day: 'numeric' }; 
+                        const startDate = new Date(task.start).toLocaleDateString('fr-FR', options); 
+                        const endDate = new Date(task.end).toLocaleDateString('fr-FR', options); 
+                        const descriptionStyle = "font-style: italic; opacity: 0.9; margin-top: 10px; padding-top: 10px; border-top: 1px solid #4c566a; max-width: 350px; white-space: normal; overflow-wrap: break-word;";
+                        return `<div class="apexcharts-tooltip-box"><div class="apexcharts-tooltip-title">${task.emoji} ${task.name}</div><div><strong>Du:</strong> ${startDate}</div><div><strong>Au:</strong> ${endDate}</div><div style="${descriptionStyle}">${task.description}</div></div>`; 
+                    } 
+                },
+                annotations: { xaxis: [{ x: new Date().getTime(), borderColor: '#e44d26', strokeDashArray: 2, label: { text: 'Aujourd\'hui', borderColor: '#e44d26', style: { color: '#fff', background: '#e44d26' } } }] }
+            });
+            chart.render();
+
+            loadInitialTasks();
+            
             document.getElementById('reset-btn').addEventListener('click', resetPlanning);
             document.getElementById('save-btn').addEventListener('click', openSaveModal);
             document.getElementById('confirm-save-btn').addEventListener('click', handleConfirmSave);

@@ -20,7 +20,14 @@
         .controls-container h2, .versions-manager h3 { margin-top: 0; font-size: 1.4em; color: #2e3440; }
         .versions-manager h3 { font-size: 1.1em; color: #434c5e;}
         #tasks-table { width: 100%; border-collapse: collapse; }
-        #tasks-table th, #tasks-table td { padding: 8px; text-align: left; border-bottom: 1px solid #eceff4; vertical-align: middle; }
+        #tasks-table th, #tasks-table td {
+            padding: 8px;
+            text-align: left;
+            vertical-align: top; 
+        }
+        #tasks-table tbody tr {
+            border-bottom: 1px solid #eceff4;
+        }
         #tasks-table th { font-size: 0.9em; text-transform: uppercase; color: #4c566a; padding-bottom: 12px; }
         #tasks-table th.center-header { text-align: center; }
         #tasks-table td.task-name-cell { 
@@ -28,6 +35,7 @@
             align-items: center;
             gap: 8px;
             font-weight: 500; 
+            white-space: nowrap;
         }
         #tasks-table td.task-name-cell span {
             font-size: 1.2em;
@@ -56,7 +64,9 @@
             box-sizing: border-box; 
         }
         #tasks-table input[type="date"], #tasks-table select { text-align: center; }
-        #tasks-table textarea { resize: vertical; min-height: 40px; }
+        #tasks-table textarea { 
+            resize: none;
+        }
         #versions-select { width: 100%; padding: 10px; border-radius: 6px; border: 1px solid #d8dee9; background-color: #fff; font-size: 15px; }
         .button { display: block; flex: 1; width: 100%; padding: 12px; margin-top: 10px; color: #ffffff; border: none; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; text-align: center; }
         .save-button { background-color: #a3be8c; } .save-button:hover { background-color: #b5d5a2; }
@@ -211,8 +221,24 @@
             chart = new ApexCharts(elements.ganttChart, chartOptions);
             chart.render();
 
+            // NOUVELLE FONCTION POUR ÉGALISER LES HAUTEURS
+            const equalizeFieldHeights = () => {
+                const table = document.getElementById('tasks-table');
+                if (!table) return;
+
+                const referenceElement = table.querySelector('select'); // On prend le champ "Statut" comme référence
+                if (!referenceElement) return;
+
+                const targetHeight = referenceElement.offsetHeight; // On mesure sa hauteur réelle
+                const textareas = table.querySelectorAll('textarea');
+
+                // On applique cette hauteur à tous les champs de description
+                textareas.forEach(textarea => {
+                    textarea.style.height = `${targetHeight}px`;
+                });
+            };
+
             const renderTable = () => {
-                // MODIFIÉ: Tous les en-têtes sont maintenant centrés
                 let tableHTML = `<table id="tasks-table"><thead><tr><th class="center-header">Étape</th><th class="center-header">Début</th><th class="center-header">Fin</th><th class="center-header">Durée (j)</th><th class="center-header">Description</th><th class="center-header">Statut</th></tr></thead><tbody>`;
                 currentTasks.forEach((task, index) => {
                     const duration = calculateDuration(task.start, task.end);
@@ -238,7 +264,11 @@
                 tableHTML += `</tbody></table>`;
                 elements.tableWrapper.innerHTML = tableHTML;
                 elements.tableWrapper.querySelectorAll('input, textarea, select').forEach(input => input.addEventListener('change', handleInputChange));
+                
+                // APPEL DE LA NOUVELLE FONCTION APRÈS LA CRÉATION DU TABLEAU
+                equalizeFieldHeights();
             };
+
             const updateChart = () => {
                 if (chart) {
                     chart.updateOptions({
@@ -427,4 +457,3 @@
     </script>
 </body>
 </html>
-
